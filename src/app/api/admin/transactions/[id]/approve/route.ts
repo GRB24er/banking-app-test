@@ -1,217 +1,199 @@
 // src/app/api/admin/transactions/[id]/approve/route.ts
-// SINGLE SOURCE OF TRUTH FOR BALANCE UPDATES ON APPROVAL
-
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Transaction from '@/models/Transaction';
-import { sendTransactionEmail } from '@/lib/mail';
+import mongoose from 'mongoose';
 
-// Helper functions
-function isCreditType(type: string): boolean {
-  const t = (type || '').toLowerCase();
-  return t.includes('deposit') || t.includes('transfer-in') || t.includes('interest') || t.includes('credit');
+// Credit types - ADD money
+const CREDIT_TYPES = ['deposit', 'transfer-in', 'interest', 'adjustment-credit'];
+
+// Debit types - REMOVE money  
+const DEBIT_TYPES = ['withdraw', 'withdrawal', 'transfer-out', 'fee', 'adjustment-debit', 'payment', 'charge', 'purchase'];
+
+function isCredit(type: string): boolean {
+  return CREDIT_TYPES.includes(type);
+}
+
+function isDebit(type: string): boolean {
+  return DEBIT_TYPES.includes(type);
 }
 
 function getBalanceField(accountType: string): string {
-  const type = (accountType || 'checking').toLowerCase();
-  if (type === 'savings') return 'savingsBalance';
-  if (type === 'investment') return 'investmentBalance';
+  if (accountType === 'savings') return 'savingsBalance';
+  if (accountType === 'investment') return 'investmentBalance';
   return 'checkingBalance';
 }
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
+  console.log('═══════════════════════════════════════');
+  console.log('[APPROVE] Starting approval process');
+  console.log('═══════════════════════════════════════');
+
   try {
+    const { id } = params;
+    
+    console.log('[APPROVE] Transaction ID:', id);
+
+    // Validate transaction ID
+    if (!id) {
+      console.log('[APPROVE] ❌ No transaction ID provided');
+      return NextResponse.json(
+        { error: 'Transaction ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.log('[APPROVE] ❌ Invalid transaction ID format');
+      return NextResponse.json(
+        { error: 'Invalid transaction ID format' },
+        { status: 400 }
+      );
+    }
+
     await connectDB();
-    
-    const { id: transactionId } = await params;
-    const body = await req.json();
-    
-    const { 
-      action = 'approve',
-      adminNotes,
-      adminId 
-    } = body;
-    
-    console.log(`[Admin] Processing ${action} for transaction:`, transactionId);
-    
+    console.log('[APPROVE] Database connected');
+
     // Find the transaction
-    const transaction = await Transaction.findById(transactionId);
+    const transaction = await Transaction.findById(id);
     
     if (!transaction) {
+      console.log('[APPROVE] ❌ Transaction not found');
       return NextResponse.json(
         { error: 'Transaction not found' },
         { status: 404 }
       );
     }
-    
-    // Check if already processed
-    if (transaction.status !== 'pending') {
+
+    console.log('[APPROVE] Found transaction:', {
+      id: transaction._id,
+      type: transaction.type,
+      amount: transaction.amount,
+      status: transaction.status,
+      accountType: transaction.accountType,
+      userId: transaction.userId
+    });
+
+    // Check if already approved/completed
+    if (transaction.status === 'approved' || transaction.status === 'completed') {
+      console.log('[APPROVE] ⚠️ Transaction already approved');
       return NextResponse.json(
-        { error: `Transaction already ${transaction.status}. Cannot process again.` },
+        { error: 'Transaction is already approved', status: transaction.status },
         { status: 400 }
       );
     }
-    
-    // Double-check posted flag
-    if (transaction.posted) {
-      return NextResponse.json(
-        { error: 'Transaction balance already applied. Cannot process again.' },
-        { status: 400 }
-      );
-    }
-    
+
     // Find the user
     const user = await User.findById(transaction.userId);
     
     if (!user) {
+      console.log('[APPROVE] ❌ User not found for transaction');
       return NextResponse.json(
         { error: 'User not found for this transaction' },
         { status: 404 }
       );
     }
+
+    console.log('[APPROVE] Found user:', user.name, user.email);
+
+    // Get balance field and current balance
+    const balanceField = getBalanceField(transaction.accountType || 'checking');
+    const currentBalance = Number(user[balanceField]) || 0;
+    const txAmount = Math.abs(Number(transaction.amount));
+
+    console.log('[APPROVE] Balance field:', balanceField);
+    console.log('[APPROVE] Current balance:', currentBalance);
+    console.log('[APPROVE] Transaction amount:', txAmount);
+
+    // Calculate new balance
+    let newBalance = currentBalance;
     
-    // Get balance field
-    const balanceField = getBalanceField(transaction.accountType);
-    const currentBalance = Number((user as any)[balanceField] || 0);
-    
-    if (action === 'approve') {
-      // Determine if credit or debit
-      const isCredit = isCreditType(transaction.type);
-      const balanceChange = isCredit ? transaction.amount : -transaction.amount;
-      const newBalance = currentBalance + balanceChange;
-      
-      console.log(`[Admin] Balance calculation:`, {
-        type: transaction.type,
-        isCredit,
-        amount: transaction.amount,
-        currentBalance,
-        balanceChange,
-        newBalance
-      });
-      
-      // Check funds for debit transactions
-      if (!isCredit && newBalance < 0) {
-        return NextResponse.json(
-          { 
-            error: 'Insufficient funds to approve this transaction',
-            details: {
-              currentBalance,
-              required: transaction.amount,
-              shortfall: transaction.amount - currentBalance
-            }
-          },
-          { status: 400 }
-        );
-      }
-      
-      // =====================================================
-      // UPDATE BALANCE - SINGLE PLACE
-      // =====================================================
-      (user as any)[balanceField] = newBalance;
-      await user.save();
-      
-      console.log(`[Admin] Balance updated: ${currentBalance} -> ${newBalance}`);
-      
-      // Update transaction status and mark as posted
-      transaction.status = 'completed';
-      transaction.posted = true;
-      transaction.postedAt = new Date();
-      transaction.approvedBy = adminId || 'admin';
-      transaction.approvedAt = new Date();
-      if (adminNotes) transaction.adminNotes = adminNotes;
-      
-      await transaction.save();
-      
-      console.log(`[Admin] Transaction marked as completed and posted`);
-      
-      // Send email notification
-      if (user.email) {
-        try {
-          await sendTransactionEmail(user.email, {
-            name: user.name || 'Customer',
-            transaction: {
-              ...transaction.toObject(),
-              balanceBefore: currentBalance,
-              balanceAfter: newBalance
-            }
-          });
-          console.log('[Admin] Approval email sent');
-        } catch (emailError) {
-          console.error('[Admin] Email failed:', emailError);
-        }
-      }
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Transaction approved successfully',
-        transaction: {
-          _id: transaction._id,
-          reference: transaction.reference,
-          status: 'completed',
-          amount: transaction.amount,
-          type: transaction.type,
-          accountType: transaction.accountType,
-          previousBalance: currentBalance,
-          newBalance: newBalance,
-          posted: true,
-          approvedAt: transaction.approvedAt
-        }
-      });
-      
-    } else if (action === 'reject') {
-      // =====================================================
-      // REJECT - NO BALANCE CHANGES
-      // =====================================================
-      transaction.status = 'rejected';
-      transaction.rejectedBy = adminId || 'admin';
-      transaction.rejectedAt = new Date();
-      if (adminNotes) transaction.adminNotes = adminNotes;
-      // posted stays false - no balance was ever applied
-      
-      await transaction.save();
-      
-      console.log(`[Admin] Transaction rejected`);
-      
-      // Send rejection email
-      if (user.email) {
-        try {
-          await sendTransactionEmail(user.email, {
-            name: user.name || 'Customer',
-            transaction: transaction.toObject()
-          });
-        } catch (emailError) {
-          console.error('[Admin] Rejection email failed:', emailError);
-        }
-      }
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Transaction rejected',
-        transaction: {
-          _id: transaction._id,
-          reference: transaction.reference,
-          status: 'rejected',
-          amount: transaction.amount,
-          type: transaction.type,
-          rejectedAt: transaction.rejectedAt
-        }
-      });
-      
+    if (isCredit(transaction.type)) {
+      newBalance = currentBalance + txAmount;
+      console.log('[APPROVE] CREDIT:', currentBalance, '+', txAmount, '=', newBalance);
+    } else if (isDebit(transaction.type)) {
+      newBalance = currentBalance - txAmount;
+      console.log('[APPROVE] DEBIT:', currentBalance, '-', txAmount, '=', newBalance);
     } else {
-      return NextResponse.json(
-        { error: 'Invalid action. Use "approve" or "reject"' },
-        { status: 400 }
-      );
+      // Default to credit if type not recognized
+      newBalance = currentBalance + txAmount;
+      console.log('[APPROVE] DEFAULT CREDIT:', currentBalance, '+', txAmount, '=', newBalance);
     }
-    
+
+    // Update user balance
+    const userUpdateResult = await User.updateOne(
+      { _id: user._id },
+      { 
+        $set: { 
+          [balanceField]: newBalance 
+        } 
+      }
+    );
+
+    console.log('[APPROVE] User balance update result:', userUpdateResult);
+
+    // Update transaction status
+    const txUpdateResult = await Transaction.updateOne(
+      { _id: transaction._id },
+      {
+        $set: {
+          status: 'approved',
+          posted: true,
+          postedAt: new Date(),
+          approvedAt: new Date()
+        }
+      }
+    );
+
+    console.log('[APPROVE] Transaction update result:', txUpdateResult);
+
+    // Verify the updates
+    const verifiedUser = await User.findById(user._id);
+    const verifiedTx = await Transaction.findById(transaction._id);
+
+    console.log('[APPROVE] ✅ Verified user balance:', verifiedUser[balanceField]);
+    console.log('[APPROVE] ✅ Verified transaction status:', verifiedTx.status);
+
+    console.log('═══════════════════════════════════════');
+    console.log('[APPROVE] ✅ APPROVAL COMPLETE');
+    console.log('[APPROVE] User:', user.name);
+    console.log('[APPROVE] Type:', transaction.type);
+    console.log('[APPROVE] Amount:', txAmount);
+    console.log('[APPROVE] Balance:', currentBalance, '→', newBalance);
+    console.log('═══════════════════════════════════════');
+
+    return NextResponse.json({
+      success: true,
+      message: `Transaction approved. ${isCredit(transaction.type) ? 'Credited' : 'Debited'} $${txAmount.toLocaleString()} ${isCredit(transaction.type) ? 'to' : 'from'} ${user.name}'s ${transaction.accountType} account.`,
+      transaction: {
+        _id: transaction._id,
+        reference: transaction.reference,
+        type: transaction.type,
+        amount: txAmount,
+        status: 'approved',
+        accountType: transaction.accountType
+      },
+      balance: {
+        field: balanceField,
+        previous: currentBalance,
+        current: newBalance,
+        change: isCredit(transaction.type) ? txAmount : -txAmount
+      }
+    });
+
   } catch (error: any) {
-    console.error('[Admin] Approval/Rejection error:', error);
+    console.error('═══════════════════════════════════════');
+    console.error('[APPROVE] ❌ ERROR:', error.message);
+    console.error('[APPROVE] Stack:', error.stack);
+    console.error('═══════════════════════════════════════');
+
     return NextResponse.json(
-      { error: 'Failed to process request', details: error.message },
+      { error: 'Failed to approve transaction', details: error.message },
       { status: 500 }
     );
   }

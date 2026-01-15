@@ -9,9 +9,9 @@ interface User {
   _id: string;
   name: string;
   email: string;
-  checkingBalance: number;
-  savingsBalance: number;
-  investmentBalance: number;
+  checkingBalance?: number;
+  savingsBalance?: number;
+  investmentBalance?: number;
   verified?: boolean;
   role?: string;
 }
@@ -27,6 +27,11 @@ interface Transaction {
   date: string;
   accountType: string;
 }
+
+// Helper function to safely get balance
+const getBalance = (value: number | undefined | null): number => {
+  return value ?? 0;
+};
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -66,79 +71,74 @@ export default function AdminDashboard() {
   }, []);
 
   // LOAD ALL USERS
-  // Update your loadUsers function in src/app/admin/page.tsx
-// Replace your current loadUsers function with this:
-
-const loadUsers = async () => {
-  setLoading(true);
-  setMessage("Loading users from database...");
-  
-  try {
-    console.log('Fetching users from API...');
+  const loadUsers = async () => {
+    setLoading(true);
+    setMessage("Loading users from database...");
     
-    const response = await fetch("/api/admin/users", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      cache: 'no-store' // Prevent caching issues
-    });
-    
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
-    
-    // Check if response is OK
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    // Get response text first to debug
-    const responseText = await response.text();
-    console.log('Raw response:', responseText);
-    
-    // Try to parse JSON
-    let data;
     try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('JSON Parse Error:', parseError);
-      console.error('Response was:', responseText);
-      throw new Error('Invalid JSON response from server');
-    }
-    
-    console.log('Parsed data:', data);
-    
-    if (data.success && data.users) {
-      setUsers(data.users);
-      setMessage(`✅ Loaded ${data.users.length} users from database`);
-      setTimeout(() => setMessage(""), 3000);
-    } else {
-      setMessage(`⚠️ ${data.error || 'No users found in database'}`);
-      setUsers([]);
-    }
-  } catch (error: any) {
-    console.error("Failed to load users:", error);
-    setMessage(`❌ Error: ${error.message}`);
-    setUsers([]);
-    
-    // Try the test endpoint to see if API routes work at all
-    try {
-      console.log('Trying test endpoint...');
-      const testResponse = await fetch("/api/admin/test-users");
-      const testData = await testResponse.json();
-      console.log('Test endpoint response:', testData);
+      console.log('Fetching users from API...');
       
-      if (testData.success && testData.users) {
-        setMessage("⚠️ Using test data - check your database connection");
-        setUsers(testData.users);
+      const response = await fetch("/api/admin/users", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: 'no-store'
+      });
+      
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    } catch (testError) {
-      console.error('Test endpoint also failed:', testError);
+      
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        throw new Error('Invalid JSON response from server');
+      }
+      
+      console.log('Parsed data:', data);
+      
+      if (data.success && data.users) {
+        // Log first user structure to debug balance fields
+        if (data.users.length > 0) {
+          console.log('First user structure:', JSON.stringify(data.users[0], null, 2));
+        }
+        setUsers(data.users);
+        setMessage(`✅ Loaded ${data.users.length} users from database`);
+        setTimeout(() => setMessage(""), 3000);
+      } else {
+        setMessage(`⚠️ ${data.error || 'No users found in database'}`);
+        setUsers([]);
+      }
+    } catch (error: any) {
+      console.error("Failed to load users:", error);
+      setMessage(`❌ Error: ${error.message}`);
+      setUsers([]);
+      
+      try {
+        console.log('Trying test endpoint...');
+        const testResponse = await fetch("/api/admin/test-users");
+        const testData = await testResponse.json();
+        console.log('Test endpoint response:', testData);
+        
+        if (testData.success && testData.users) {
+          setMessage("⚠️ Using test data - check your database connection");
+          setUsers(testData.users);
+        }
+      } catch (testError) {
+        console.error('Test endpoint also failed:', testError);
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // LOAD ALL TRANSACTIONS
   const loadTransactions = async () => {
@@ -160,89 +160,91 @@ const loadUsers = async () => {
     }
   };
 
-  // PROCESS TRANSACTION (CREDIT/DEBIT USER)
-// UPDATE THIS IN YOUR: src/app/dashboard/admin/page.tsx
-// Replace your handleTransaction function with this:
-
-const handleTransaction = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  if (!selectedUser) {
-    setMessage("❌ Please select a user first");
-    return;
-  }
-
-  if (!transactionForm.amount || parseFloat(transactionForm.amount) <= 0) {
-    setMessage("❌ Please enter a valid amount");
-    return;
-  }
-
-  setLoading(true);
-  setMessage("Processing transaction...");
-  
-  try {
-    // Use the new create-transaction endpoint
-    const response = await fetch("/api/admin/create-transaction", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json" 
-      },
-      body: JSON.stringify({
-        userId: selectedUser._id,  // Pass userId in the body
-        type: transactionForm.type,
-        amount: parseFloat(transactionForm.amount),
-        accountType: transactionForm.accountType,
-        description: transactionForm.description || `Admin ${transactionForm.type}`,
-        status: "completed"
-      })
-    });
-
-    console.log('Response status:', response.status);
-    const data = await response.json();
-    console.log('Response data:', data);
-
-    if (response.ok && data.success) {
-      setMessage(`✅ ${data.message}`);
-      
-      // Update the selected user's balance locally for immediate UI update
-      if (selectedUser) {
-        const updatedUser = { ...selectedUser };
-        if (transactionForm.accountType === 'checking') {
-          updatedUser.checkingBalance = data.newBalance;
-        } else if (transactionForm.accountType === 'savings') {
-          updatedUser.savingsBalance = data.newBalance;
-        } else if (transactionForm.accountType === 'investment') {
-          updatedUser.investmentBalance = data.newBalance;
-        }
-        setSelectedUser(updatedUser);
-      }
-      
-      // Reset form
-      setTransactionForm({
-        type: "deposit",
-        amount: "",
-        accountType: "checking",
-        description: "",
-        sendEmail: true,
-        emailType: "credit"
-      });
-      
-      // Reload users and transactions to show updates
-      await loadUsers();
-      await loadTransactions();
-      
-      // Clear success message after 5 seconds
-      setTimeout(() => setMessage(""), 5000);
-    } else {
-      setMessage(`❌ Error: ${data.error || 'Transaction failed'}`);
+  // PROCESS TRANSACTION (CREDIT/DEBIT USER) - FIXED VERSION
+  const handleTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedUser) {
+      setMessage("❌ Please select a user first");
+      return;
     }
-  } catch (error: any) {
-    console.error("Transaction error:", error);
-    setMessage(`❌ Failed to process transaction: ${error.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+
+    if (!transactionForm.amount || parseFloat(transactionForm.amount) <= 0) {
+      setMessage("❌ Please enter a valid amount");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("Processing transaction...");
+    
+    try {
+      const response = await fetch("/api/admin/create-transaction", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({
+          userId: selectedUser._id,
+          type: transactionForm.type,
+          amount: parseFloat(transactionForm.amount),
+          accountType: transactionForm.accountType,
+          description: transactionForm.description || `Admin ${transactionForm.type}`,
+          status: "completed"
+        })
+      });
+
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (response.ok && data.success) {
+        setMessage(`✅ ${data.message}`);
+        
+        // Reset form first
+        setTransactionForm({
+          type: "deposit",
+          amount: "",
+          accountType: "checking",
+          description: "",
+          sendEmail: true,
+          emailType: "credit"
+        });
+        
+        // Reload users and transactions to get fresh data from server
+        await loadUsers();
+        await loadTransactions();
+        
+        // Re-select the user with fresh data from the updated users list
+        const freshResponse = await fetch("/api/admin/users", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          cache: 'no-store'
+        });
+        const freshData = await freshResponse.json();
+        
+        if (freshData.success && freshData.users) {
+          const updatedUser = freshData.users.find((u: User) => u._id === selectedUser._id);
+          if (updatedUser) {
+            console.log('Updated user balances:', {
+              checking: updatedUser.checkingBalance,
+              savings: updatedUser.savingsBalance,
+              investment: updatedUser.investmentBalance
+            });
+            setSelectedUser(updatedUser);
+          }
+        }
+        
+        setTimeout(() => setMessage(""), 5000);
+      } else {
+        setMessage(`❌ Error: ${data.error || 'Transaction failed'}`);
+      }
+    } catch (error: any) {
+      console.error("Transaction error:", error);
+      setMessage(`❌ Failed to process transaction: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // APPROVE TRANSACTION
   const approveTransaction = async (transactionId: string) => {
@@ -260,14 +262,24 @@ const handleTransaction = async (e: React.FormEvent) => {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage("Transaction approved successfully!");
+        setMessage("✅ Transaction approved successfully!");
         await loadTransactions();
         await loadUsers();
+        
+        // Refresh selected user if one is selected
+        if (selectedUser) {
+          const freshResponse = await fetch("/api/admin/users", { cache: 'no-store' });
+          const freshData = await freshResponse.json();
+          if (freshData.success && freshData.users) {
+            const updatedUser = freshData.users.find((u: User) => u._id === selectedUser._id);
+            if (updatedUser) setSelectedUser(updatedUser);
+          }
+        }
       } else {
-        setMessage(`Error: ${data.error}`);
+        setMessage(`❌ Error: ${data.error}`);
       }
     } catch (error) {
-      setMessage("Failed to approve transaction");
+      setMessage("❌ Failed to approve transaction");
     } finally {
       setLoading(false);
     }
@@ -292,13 +304,13 @@ const handleTransaction = async (e: React.FormEvent) => {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage("Transaction declined");
+        setMessage("✅ Transaction declined");
         await loadTransactions();
       } else {
-        setMessage(`Error: ${data.error}`);
+        setMessage(`❌ Error: ${data.error}`);
       }
     } catch (error) {
-      setMessage("Failed to decline transaction");
+      setMessage("❌ Failed to decline transaction");
     } finally {
       setLoading(false);
     }
@@ -316,7 +328,7 @@ const handleTransaction = async (e: React.FormEvent) => {
     setActiveTab("edit-transaction");
   };
 
-  // SAVE EDITED TRANSACTION
+  // SAVE EDITED TRANSACTION - FIXED VERSION
   const saveEditedTransaction = async () => {
     if (!editingTransaction) return;
 
@@ -338,16 +350,28 @@ const handleTransaction = async (e: React.FormEvent) => {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage("Transaction updated successfully!");
+        setMessage("✅ Transaction updated successfully!");
         setEditingTransaction(null);
         setActiveTab("transactions");
+        
+        // Reload all data
         await loadTransactions();
         await loadUsers();
+        
+        // Refresh selected user if one is selected
+        if (selectedUser) {
+          const freshResponse = await fetch("/api/admin/users", { cache: 'no-store' });
+          const freshData = await freshResponse.json();
+          if (freshData.success && freshData.users) {
+            const updatedUser = freshData.users.find((u: User) => u._id === selectedUser._id);
+            if (updatedUser) setSelectedUser(updatedUser);
+          }
+        }
       } else {
-        setMessage(`Error: ${data.error}`);
+        setMessage(`❌ Error: ${data.error}`);
       }
     } catch (error) {
-      setMessage("Failed to update transaction");
+      setMessage("❌ Failed to update transaction");
     } finally {
       setLoading(false);
     }
@@ -374,7 +398,7 @@ const handleTransaction = async (e: React.FormEvent) => {
     }
   };
 
-  // DELETE TRANSACTION
+  // DELETE TRANSACTION - FIXED VERSION
   const deleteTransaction = async (transactionId: string) => {
     if (!confirm("Are you sure you want to delete this transaction?")) return;
 
@@ -385,15 +409,25 @@ const handleTransaction = async (e: React.FormEvent) => {
       });
 
       if (response.ok) {
-        setMessage("Transaction deleted");
+        setMessage("✅ Transaction deleted");
         await loadTransactions();
         await loadUsers();
+        
+        // Refresh selected user if one is selected
+        if (selectedUser) {
+          const freshResponse = await fetch("/api/admin/users", { cache: 'no-store' });
+          const freshData = await freshResponse.json();
+          if (freshData.success && freshData.users) {
+            const updatedUser = freshData.users.find((u: User) => u._id === selectedUser._id);
+            if (updatedUser) setSelectedUser(updatedUser);
+          }
+        }
       } else {
         const data = await response.json();
-        setMessage(`Error: ${data.error}`);
+        setMessage(`❌ Error: ${data.error}`);
       }
     } catch (error) {
-      setMessage("Failed to delete transaction");
+      setMessage("❌ Failed to delete transaction");
     } finally {
       setLoading(false);
     }
@@ -404,6 +438,13 @@ const handleTransaction = async (e: React.FormEvent) => {
     return transactions.filter(t => 
       t.userId && (t.userId._id === userId || t.userId === userId)
     );
+  };
+
+  // Calculate total balance safely
+  const getTotalBalance = (user: User): number => {
+    return getBalance(user.checkingBalance) + 
+           getBalance(user.savingsBalance) + 
+           getBalance(user.investmentBalance);
   };
 
   return (
@@ -505,21 +546,19 @@ const handleTransaction = async (e: React.FormEvent) => {
                       <div className={styles.balances}>
                         <div>
                           <span>Checking:</span>
-                          <strong>${user.checkingBalance.toLocaleString()}</strong>
+                          <strong>${getBalance(user.checkingBalance).toLocaleString()}</strong>
                         </div>
                         <div>
                           <span>Savings:</span>
-                          <strong>${user.savingsBalance.toLocaleString()}</strong>
+                          <strong>${getBalance(user.savingsBalance).toLocaleString()}</strong>
                         </div>
                         <div>
                           <span>Investment:</span>
-                          <strong>${user.investmentBalance.toLocaleString()}</strong>
+                          <strong>${getBalance(user.investmentBalance).toLocaleString()}</strong>
                         </div>
                         <div className={styles.totalBalance}>
                           <span>Total:</span>
-                          <strong>
-                            ${(user.checkingBalance + user.savingsBalance + user.investmentBalance).toLocaleString()}
-                          </strong>
+                          <strong>${getTotalBalance(user).toLocaleString()}</strong>
                         </div>
                       </div>
                       
@@ -529,12 +568,15 @@ const handleTransaction = async (e: React.FormEvent) => {
                         {getUserTransactions(user._id).slice(0, 3).map(tx => (
                           <div key={tx._id} className={styles.miniTransaction}>
                             <span>{tx.type}</span>
-                            <span>${tx.amount}</span>
+                            <span>${getBalance(tx.amount).toLocaleString()}</span>
                             <span className={`${styles.status} ${styles[tx.status]}`}>
                               {tx.status}
                             </span>
                           </div>
                         ))}
+                        {getUserTransactions(user._id).length === 0 && (
+                          <p className={styles.noTransactions}>No transactions yet</p>
+                        )}
                       </div>
                       
                       <button 
@@ -562,9 +604,9 @@ const handleTransaction = async (e: React.FormEvent) => {
                 <h3>{selectedUser.name}</h3>
                 <p>{selectedUser.email}</p>
                 <div className={styles.currentBalances}>
-                  <span>Checking: ${selectedUser.checkingBalance.toLocaleString()}</span>
-                  <span>Savings: ${selectedUser.savingsBalance.toLocaleString()}</span>
-                  <span>Investment: ${selectedUser.investmentBalance.toLocaleString()}</span>
+                  <span>Checking: ${getBalance(selectedUser.checkingBalance).toLocaleString()}</span>
+                  <span>Savings: ${getBalance(selectedUser.savingsBalance).toLocaleString()}</span>
+                  <span>Investment: ${getBalance(selectedUser.investmentBalance).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -648,77 +690,88 @@ const handleTransaction = async (e: React.FormEvent) => {
             <div className={styles.transactionsSection}>
               <h2>All Transactions</h2>
               
-              <table className={styles.transactionTable}>
-                <thead>
-                  <tr>
-                    <th>Reference</th>
-                    <th>User</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Account</th>
-                    <th>Description</th>
-                    <th>Date</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map(tx => (
-                    <tr key={tx._id}>
-                      <td>{tx.reference}</td>
-                      <td>{tx.userId?.name || 'Unknown'}</td>
-                      <td>{tx.type}</td>
-                      <td className={tx.type.includes('deposit') || tx.type.includes('credit') ? styles.credit : styles.debit}>
-                        ${tx.amount.toLocaleString()}
-                      </td>
-                      <td>{tx.accountType}</td>
-                      <td>{tx.description}</td>
-                      <td>{new Date(tx.date).toLocaleDateString()}</td>
-                      <td>
-                        <span className={`${styles.status} ${styles[tx.status]}`}>
-                          {tx.status}
-                        </span>
-                      </td>
-                      <td>
-                        <div className={styles.actions}>
-                          {tx.status === 'pending' && (
-                            <>
-                              <button 
-                                onClick={() => approveTransaction(tx._id)}
-                                className={styles.approveBtn}
-                                disabled={loading}
-                              >
-                                Approve
-                              </button>
-                              <button 
-                                onClick={() => declineTransaction(tx._id)}
-                                className={styles.declineBtn}
-                                disabled={loading}
-                              >
-                                Decline
-                              </button>
-                            </>
-                          )}
-                          <button 
-                            onClick={() => startEditTransaction(tx)}
-                            className={styles.editBtn}
-                            disabled={loading}
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => deleteTransaction(tx._id)}
-                            className={styles.deleteBtn}
-                            disabled={loading}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
+              {transactions.length === 0 ? (
+                <p>No transactions found</p>
+              ) : (
+                <table className={styles.transactionTable}>
+                  <thead>
+                    <tr>
+                      <th>Reference</th>
+                      <th>User</th>
+                      <th>Type</th>
+                      <th>Amount</th>
+                      <th>Account</th>
+                      <th>Description</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {transactions.map(tx => (
+                      <tr key={tx._id}>
+                        <td>{tx.reference || 'N/A'}</td>
+                        <td>{tx.userId?.name || tx.userId?.email || 'Unknown'}</td>
+                        <td>{tx.type}</td>
+                        <td className={
+                          tx.type.includes('deposit') || 
+                          tx.type.includes('credit') || 
+                          tx.type.includes('interest') || 
+                          tx.type === 'transfer-in' 
+                            ? styles.credit 
+                            : styles.debit
+                        }>
+                          ${getBalance(tx.amount).toLocaleString()}
+                        </td>
+                        <td>{tx.accountType || 'N/A'}</td>
+                        <td>{tx.description || 'N/A'}</td>
+                        <td>{tx.date ? new Date(tx.date).toLocaleDateString() : 'N/A'}</td>
+                        <td>
+                          <span className={`${styles.status} ${styles[tx.status] || ''}`}>
+                            {tx.status || 'unknown'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className={styles.actions}>
+                            {tx.status === 'pending' && (
+                              <>
+                                <button 
+                                  onClick={() => approveTransaction(tx._id)}
+                                  className={styles.approveBtn}
+                                  disabled={loading}
+                                >
+                                  Approve
+                                </button>
+                                <button 
+                                  onClick={() => declineTransaction(tx._id)}
+                                  className={styles.declineBtn}
+                                  disabled={loading}
+                                >
+                                  Decline
+                                </button>
+                              </>
+                            )}
+                            <button 
+                              onClick={() => startEditTransaction(tx)}
+                              className={styles.editBtn}
+                              disabled={loading}
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => deleteTransaction(tx._id)}
+                              className={styles.deleteBtn}
+                              disabled={loading}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
 
@@ -730,7 +783,7 @@ const handleTransaction = async (e: React.FormEvent) => {
               <div className={styles.editForm}>
                 <div className={styles.formGroup}>
                   <label>Reference</label>
-                  <input type="text" value={editingTransaction.reference} disabled />
+                  <input type="text" value={editingTransaction.reference || 'N/A'} disabled />
                 </div>
                 
                 <div className={styles.formGroup}>
@@ -769,18 +822,22 @@ const handleTransaction = async (e: React.FormEvent) => {
                   >
                     <option value="pending">Pending</option>
                     <option value="completed">Completed</option>
+                    <option value="approved">Approved</option>
                     <option value="rejected">Rejected</option>
                   </select>
                 </div>
                 
                 <div className={styles.formActions}>
                   <button onClick={saveEditedTransaction} disabled={loading}>
-                    Save Changes
+                    {loading ? "Saving..." : "Save Changes"}
                   </button>
-                  <button onClick={() => {
-                    setEditingTransaction(null);
-                    setActiveTab("transactions");
-                  }}>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setEditingTransaction(null);
+                      setActiveTab("transactions");
+                    }}
+                  >
                     Cancel
                   </button>
                 </div>
