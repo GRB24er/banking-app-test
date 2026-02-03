@@ -4,11 +4,11 @@ import nodemailer, { Transporter, SentMessageInfo } from "nodemailer";
 /** ==============================
  * NAMECHEAP PRIVATE EMAIL SMTP CONFIGURATION
  * ============================== */
-const SMTP_HOST = "mail.privateemail.com";
+const SMTP_HOST = "smtp.hostinger.com";
 const SMTP_PORT = 465;
 const SMTP_SECURE = true;
-const SMTP_USER = "admin@zentribank.online";
-const SMTP_PASS = "Valmont15#";
+const SMTP_USER = "admin@zentribank.capital"
+const SMTP_PASS = "Valmont15#Benjamin2010";
 
 // Brand Configuration
 const BRAND_NAME = "ZentriBank";
