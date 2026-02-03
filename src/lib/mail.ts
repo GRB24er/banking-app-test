@@ -1,8 +1,8 @@
-// src/lib/mail.ts - ALDWYCH EUROPEAN CAPITAL - HOSTINGER SMTP
+// src/lib/mail.ts - ZENTRIBANK - NAMECHEAP PRIVATE EMAIL SMTP
 import nodemailer, { Transporter, SentMessageInfo } from "nodemailer";
 
 /** ==============================
- * HOSTINGER SMTP CONFIGURATION
+ * NAMECHEAP PRIVATE EMAIL SMTP CONFIGURATION
  * ============================== */
 const SMTP_HOST = "mail.privateemail.com";
 const SMTP_PORT = 465;
@@ -86,10 +86,10 @@ async function getTransporter(): Promise<Transporter> {
   try {
     if (cachedTransporter) {
       await cachedTransporter.verify();
-      console.log("[mail] ✅ Hostinger SMTP connection verified successfully");
+      console.log("[mail] ✅ Namecheap SMTP connection verified successfully");
     }
   } catch (err) {
-    console.error("[mail] ❌ Hostinger SMTP verification failed:", err);
+    console.error("[mail] ❌ Namecheap SMTP verification failed:", err);
   }
 
   return cachedTransporter as Transporter;
@@ -256,6 +256,20 @@ function isDebit(type: string): boolean {
   return t.includes("withdraw") || t.includes("transfer-out") || t.includes("fee") || t.includes("adjustment-debit") || t.includes("debit");
 }
 
+// ============================================
+// FIX: Format amount WITHOUT currency symbols for subject lines
+// Namecheap blocks emails with $, €, £, ¥ in subject
+// ============================================
+function fmtAmountPlain(n: number, currency = "USD"): string {
+  // Returns: "500.00 USD" instead of "$500.00"
+  const formatted = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number(n || 0));
+  return `${formatted} ${currency}`;
+}
+
+// Format with currency symbol (for HTML body only, NOT subject)
 function fmtAmount(n: number, currency = "USD"): string {
   try {
     return new Intl.NumberFormat("en-US", {
@@ -358,7 +372,7 @@ async function sendWithRetry(
  * PUBLIC APIs - ALL EXPORTS
  * ============================== */
 
-// 1) Transaction Email
+// 1) Transaction Email - FIXED: No currency symbols in subject
 export async function sendTransactionEmail(
   to: string | string[],
   args: { name?: string; transaction: TxLike }
@@ -377,9 +391,20 @@ export async function sendTransactionEmail(
   const tx = normalizeTx(args.transaction);
   const label = statusLabel(tx.status);
   const statusColors = getStatusColors(label);
+  
+  // For HTML body - use currency symbols (looks nice)
   const signedAmount = (isCredit(tx.type) ? "+" : isDebit(tx.type) ? "-" : "") + fmtAmount(tx.amount, tx.currency);
   const amountColor = isCredit(tx.type) ? BRAND_COLORS.success : BRAND_COLORS.error;
-  const subject = `Transaction ${label}: ${tx.description || tx.type} ${signedAmount}`;
+  
+  // ============================================
+  // FIX: Subject line WITHOUT currency symbols
+  // Old: "Transaction Completed: Deposit +$500.00"  ← BLOCKED
+  // New: "Transaction Completed: Deposit 500.00 USD" ← WORKS
+  // ============================================
+  const subjectAmount = fmtAmountPlain(tx.amount, tx.currency);
+  const subjectDirection = isCredit(tx.type) ? "Credit" : isDebit(tx.type) ? "Debit" : "";
+  const subject = `Transaction ${label} - ${subjectDirection} ${subjectAmount}`.replace(/\s+/g, ' ').trim();
+  
   const greetingName = args.name || "Valued Client";
 
   const content = `
@@ -618,7 +643,7 @@ European Private Banking Since ${BRAND_YEAR_FOUNDED}
   }
 }
 
-// 3) OTP Email
+// 3) OTP Email - FIXED: No currency symbols, code is just numbers
 export async function sendOTPEmail(
   to: string,
   code: string,
@@ -637,7 +662,8 @@ export async function sendOTPEmail(
   };
 
   const typeLabel = typeLabels[type] || "Verification";
-  const subject = `${BRAND_SHORT} - ${typeLabel} Code: ${code}`;
+  // FIXED: Just include the code without any special characters
+  const subject = `${BRAND_SHORT} - ${typeLabel} Code - ${code}`;
   const expiryTime = new Date(Date.now() + expiryMinutes * 60000);
 
   const content = `
@@ -657,7 +683,7 @@ export async function sendOTPEmail(
       </div>
       
       <div style="background: linear-gradient(135deg, rgba(239,68,68,0.1) 0%, rgba(239,68,68,0.05) 100%); border-left: 4px solid ${BRAND_COLORS.error}; padding: 20px; border-radius: 0 8px 8px 0; margin: 30px 0;">
-        <p style="margin: 0 0 15px; font-size: 15px; font-weight: 700; color: ${BRAND_COLORS.errorDark};">⚠️ Security Warning</p>
+        <p style="margin: 0 0 15px; font-size: 15px; font-weight: 700; color: ${BRAND_COLORS.errorDark};">Security Warning</p>
         <ul style="margin: 0; padding-left: 20px; color: ${BRAND_COLORS.textSecondary}; font-size: 14px;">
           <li style="margin-bottom: 8px;"><strong>Never share</strong> this code with anyone, including bank staff</li>
           <li style="margin-bottom: 8px;">${BRAND_NAME} will <strong>never</strong> ask for this code via phone, SMS, or email</li>
@@ -749,7 +775,8 @@ export async function sendBankStatementEmail(
     }
   }
 
-  const subject = `${BRAND_SHORT} - Account Statement${periodText ? ` (${periodText})` : ""}`;
+  // FIXED: No currency symbols in subject
+  const subject = `${BRAND_SHORT} - Account Statement${periodText ? ` - ${periodText}` : ""}`;
 
   const content = `
     ${getEmailHeader("Account Statement", periodText || "Your latest statement is ready")}
@@ -914,13 +941,16 @@ export async function sendSimpleEmail(
     ${getEmailFooter()}
   `;
 
+  // FIXED: Clean subject line
+  const cleanSubject = `${BRAND_SHORT} - ${subject}`;
+
   return sendWithRetry(
     {
       from: FROM_DISPLAY,
       replyTo: REPLY_TO,
       envelope: { from: ENVELOPE_FROM, to: recipientList },
       to: recipientList,
-      subject: `${BRAND_SHORT} - ${subject}`,
+      subject: cleanSubject,
       text,
       html: getEmailWrapper(content),
       headers: {
@@ -956,10 +986,10 @@ export async function testSMTPConnection(): Promise<boolean> {
   try {
     const transporter = await getTransporter();
     await transporter.verify();
-    console.log("[mail] ✅ Hostinger SMTP test successful");
+    console.log("[mail] ✅ Namecheap SMTP test successful");
     return true;
   } catch (error) {
-    console.error("[mail] ❌ Hostinger SMTP test failed:", error);
+    console.error("[mail] ❌ Namecheap SMTP test failed:", error);
     return false;
   }
 }
