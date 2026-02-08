@@ -1,386 +1,207 @@
-// components/Sidebar.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import styles from "./Sidebar.module.css";
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: string;
-  badge?: number;
-  subItems?: { label: string; href: string }[];
-  requiredRole?: string[];
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { 
-    label: "Overview", 
-    href: "/dashboard", 
-    icon: "◆"
-  },
-  { 
-    label: "Accounts", 
-    href: "/accounts", 
-    icon: "●",
-    subItems: [
-      { label: "Checking", href: "/accounts/checking" },
-      { label: "Savings", href: "/accounts/savings" },
-      { label: "Investment", href: "/accounts/investment" }
-    ]
-  },
-  { 
-    label: "Payments", 
-    href: "/transfers", 
-    icon: "⬌",
-    subItems: [
-      { label: "Internal Transfer", href: "/transfers/internal" },
-      { label: "Wire Transfer", href: "/transfers/wire" },
-      { label: "International", href: "/transfers/international" },
-      { label: "Scheduled", href: "/transfers/scheduled" }
-    ]
-  },
-  { 
-    label: "Activity", 
-    href: "/transactions", 
-    icon: "≋",
-    badge: 0
-  },
-  { 
-    label: "Cards", 
-    href: "/accounts/credit-cards", 
-    icon: "▭",
-    subItems: [
-      { label: "My Cards", href: "/accounts/credit-cards" },
-      { label: "Apply for Card", href: "/accounts/credit-cards/apply" },
-      { label: "Application Status", href: "/accounts/credit-cards/status" }
-    ]
-  },
-  { 
-    label: "Investments", 
-    href: "/investments", 
-    icon: "▲",
-    subItems: [
-      { label: "Portfolio", href: "/investments/portfolio" },
-      { label: "Trading", href: "/investments/trading" },
-      { label: "Research", href: "/investments/research" },
-      { label: "Watchlist", href: "/investments/watchlist" }
-    ]
-  },
-  { 
-    label: "Bills", 
-    href: "/bills", 
-    icon: "◐",
-    badge: 0
-  },
-  { 
-    label: "Statements", 
-    href: "/accounts/statements", 
-    icon: "▤"
-  },
-  { 
-    label: "Analytics", 
-    href: "/reports", 
-    icon: "◓"
-  },
-  { 
-    label: "Admin", 
-    href: "/dashboard/admin", 
-    icon: "◈",
-    requiredRole: ["admin"],
-    subItems: [
-      { label: "Dashboard", href: "/dashboard/admin" },
-      { label: "Credit Cards", href: "/dashboard/admin/credit-cards" },
-      { label: "Statements", href: "/dashboard/admin/statements" },
-      { label: "Support", href: "/dashboard/admin/chats" },
-      { label: "Users", href: "/admin/users" },
-      { label: "Approvals", href: "/admin/transactions" },
-      { label: "KYC", href: "/admin/kyc" },
-      { label: "Settings", href: "/admin/settings" }
-    ]
-  }
-];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
+
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
-  const [userName, setUserName] = useState<string>("User");
-  const [userEmail, setUserEmail] = useState<string>("");
-  const [pendingTransactions, setPendingTransactions] = useState(0);
-  const [pendingBills, setPendingBills] = useState(0);
+  const [userName, setUserName] = useState("User");
+  const [userEmail, setUserEmail] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
-  
-  const [quickBalance, setQuickBalance] = useState({
-    checking: 0,
-    savings: 0,
-    investment: 0,
-    total: 0
-  });
+  const [balances, setBalances] = useState({ checking: 0, savings: 0, investment: 0 });
+
+  const isAdmin = session?.user?.email === "admin@horizonbank.com" || 
+                  session?.user?.email === "admin@example.com" ||
+                  (session?.user as any)?.role === "admin";
 
   useEffect(() => {
-    const fetchBalances = async () => {
-      if (session?.user?.email) {
-        try {
-          const response = await fetch('/api/user/dashboard');
-          if (response.ok) {
-            const data = await response.json();
-            
-            const checking = data.balances?.checking || 0;
-            const savings = data.balances?.savings || 0;
-            const investment = data.balances?.investment || 0;
-            
-            setQuickBalance({
-              checking: checking,
-              savings: savings,
-              investment: investment,
-              total: checking + savings + investment
-            });
-            
-            setUserName(data.user?.name || session.user.name || "User");
-            setUserEmail(data.user?.email || session.user.email || "");
-            
-            const pending = data.recent?.filter((t: any) => 
-              t.rawStatus === "pending" || t.status === "Pending"
-            ).length || 0;
-            setPendingTransactions(pending);
-          }
-        } catch (error) {
-          console.error('Error fetching balances:', error);
-          setUserName(session?.user?.name || "User");
-          setUserEmail(session?.user?.email || "");
-        }
-      }
-    };
-    
-    fetchBalances();
-    const interval = setInterval(fetchBalances, 30000);
-    return () => clearInterval(interval);
+    if (session?.user) {
+      setUserName(session.user.name || "User");
+      setUserEmail(session.user.email || "");
+      
+      fetch("/api/user/dashboard")
+        .then(res => res.json())
+        .then(data => {
+          if (data.balances) setBalances(data.balances);
+          if (data.user?.name) setUserName(data.user.name);
+        })
+        .catch(() => {});
+    }
   }, [session]);
 
-  const navItemsWithBadges = NAV_ITEMS.map(item => {
-    if (item.label === "Activity") {
-      return { ...item, badge: pendingTransactions > 0 ? pendingTransactions : undefined };
-    }
-    if (item.label === "Bills") {
-      return { ...item, badge: pendingBills > 0 ? pendingBills : undefined };
-    }
-    return item;
-  });
-
-  const filteredNavItems = navItemsWithBadges.filter(item => {
-    if (!item.requiredRole) return true;
-    return session?.user?.role === "admin" || 
-           session?.user?.email === "admin@horizonbank.com" || 
-           session?.user?.email === "admin@example.com";
-  });
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   const toggleExpand = (label: string) => {
-    setExpandedItems(prev =>
-      prev.includes(label)
-        ? prev.filter(item => item !== label)
-        : [...prev, label]
+    setExpandedItems(prev => 
+      prev.includes(label) ? prev.filter(x => x !== label) : [...prev, label]
     );
   };
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `$${(amount / 1000000).toFixed(2)}M`;
-    }
-    if (amount >= 1000) {
-      return `$${(amount / 1000).toFixed(1)}K`;
-    }
-    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  const formatMoney = (amt: number) => {
+    if (amt >= 1000000) return `$${(amt / 1000000).toFixed(2)}M`;
+    if (amt >= 1000) return `$${(amt / 1000).toFixed(1)}K`;
+    return `$${amt.toLocaleString()}`;
   };
+
+  const cashBalance = balances.checking + balances.savings;
 
   return (
     <>
-      {mobileOpen && (
-        <div 
-          className={styles.mobileOverlay}
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      <button
-        className={styles.mobileToggle}
-        onClick={() => setMobileOpen(!mobileOpen)}
-        aria-label="Toggle menu"
-      >
-        <span className={styles.hamburger}>
-          <span></span>
-          <span></span>
-          <span></span>
-        </span>
+      {mobileOpen && <div className={styles.overlay} onClick={() => setMobileOpen(false)} />}
+      
+      <button className={styles.mobileBtn} onClick={() => setMobileOpen(!mobileOpen)}>
+        <span /><span /><span />
       </button>
 
-      <nav className={`${styles.sidebar} ${mobileOpen ? styles.mobileOpen : ''}`}>
-        {/* Header Section */}
-        <div className={styles.sidebarHeader}>
-          <div className={styles.logo}>
-            <div className={styles.logoIcon}>
-              <svg viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" 
-                      fill="currentColor" opacity="0.2"/>
-                <path d="M12 2L2 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" 
-                      stroke="currentColor" strokeWidth="2"/>
-              </svg>
-            </div>
-            <div className={styles.logoText}>
-              <span className={styles.logoTitle}>ZentriBank</span>
-              <span className={styles.logoSubtitle}>Private Banking</span>
-            </div>
-          </div>
+      <aside className={`${styles.sidebar} ${mobileOpen ? styles.open : ""}`}>
+        <div className={styles.logoWrap}>
+          <Image src="/images/Logo.png" alt="Logo" width={160} height={150} priority />
         </div>
 
-        {/* Balance Card */}
         <div className={styles.balanceCard}>
-          <div className={styles.balanceHeader}>
-            <span className={styles.balanceLabel}>Total Balance</span>
-            <button 
-              className={styles.refreshButton}
-              onClick={() => window.location.reload()}
-              aria-label="Refresh"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M1 4v6h6M23 20v-6h-6"/>
-                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
-              </svg>
-            </button>
+          <div className={styles.balanceTop}>Cash Balance</div>
+          <div className={styles.balanceAmt}>{formatMoney(cashBalance)}</div>
+          <div className={styles.balanceRow}>
+            <span className={styles.dot} style={{background:"#D4AF37"}} />
+            <span>Checking</span>
+            <span>{formatMoney(balances.checking)}</span>
           </div>
-          <div className={styles.balanceAmount}>
-            {formatCurrency(quickBalance.total)}
+          <div className={styles.balanceRow}>
+            <span className={styles.dot} style={{background:"#F4D03F"}} />
+            <span>Savings</span>
+            <span>{formatMoney(balances.savings)}</span>
           </div>
-          
-          <div className={styles.balanceBreakdown}>
-            <div className={styles.breakdownItem}>
-              <span className={styles.breakdownDot} style={{background: '#10b981'}}></span>
-              <span className={styles.breakdownLabel}>Liquid</span>
-              <span className={styles.breakdownValue}>
-                {formatCurrency(quickBalance.checking + quickBalance.savings)}
-              </span>
+          <button className={styles.transferBtn} onClick={() => router.push("/transfers/internal")}>
+            → Quick Transfer
+          </button>
+        </div>
+
+        <nav className={styles.nav}>
+          <div className={styles.navTitle}>MAIN MENU</div>
+
+          <Link href="/dashboard" className={`${styles.navLink} ${pathname === "/dashboard" ? styles.active : ""}`}>
+            <span className={styles.navIcon}>⬡</span> Dashboard
+          </Link>
+
+          <div className={styles.navGroup}>
+            <div className={styles.navLink} onClick={() => toggleExpand("Accounts")}>
+              <span className={styles.navIcon}>☰</span> Accounts
+              <span className={`${styles.arrow} ${expandedItems.includes("Accounts") ? styles.arrowOpen : ""}`}>›</span>
             </div>
-            {quickBalance.investment > 0 && (
-              <div className={styles.breakdownItem}>
-                <span className={styles.breakdownDot} style={{background: '#34d399'}}></span>
-                <span className={styles.breakdownLabel}>Invested</span>
-                <span className={styles.breakdownValue}>
-                  {formatCurrency(quickBalance.investment)}
-                </span>
+            {expandedItems.includes("Accounts") && (
+              <div className={styles.subMenu}>
+                <Link href="/accounts/checking" className={`${styles.subLink} ${pathname === "/accounts/checking" ? styles.active : ""}`}>Checking</Link>
+                <Link href="/accounts/savings" className={`${styles.subLink} ${pathname === "/accounts/savings" ? styles.active : ""}`}>Savings</Link>
+                <Link href="/accounts/investment" className={`${styles.subLink} ${pathname === "/accounts/investment" ? styles.active : ""}`}>Investment</Link>
               </div>
             )}
           </div>
 
-          <button 
-            className={styles.quickTransferButton}
-            onClick={() => router.push('/transfers/internal')}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 12h14M12 5l7 7-7 7"/>
-            </svg>
-            Quick Transfer
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <div className={styles.navigation}>
-          <div className={styles.navLabel}>NAVIGATE</div>
-          {filteredNavItems.map((item) => {
-            const isActive = pathname === item.href || 
-                           pathname.startsWith(item.href + '/');
-            const isExpanded = expandedItems.includes(item.label);
-            const hasSubItems = item.subItems && item.subItems.length > 0;
-
-            return (
-              <div key={item.label} className={styles.navItemWrapper}>
-                <div
-                  className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-                  onClick={() => {
-                    if (hasSubItems) {
-                      toggleExpand(item.label);
-                    } else {
-                      router.push(item.href);
-                    }
-                  }}
-                >
-                  <span className={styles.navIcon}>{item.icon}</span>
-                  <span className={styles.navText}>{item.label}</span>
-                  
-                  {item.badge && item.badge > 0 && (
-                    <span className={styles.navBadge}>{item.badge}</span>
-                  )}
-                  
-                  {hasSubItems && (
-                    <svg 
-                      className={`${styles.expandIcon} ${isExpanded ? styles.expandIconOpen : ''}`}
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2"
-                    >
-                      <path d="M9 18l6-6-6-6"/>
-                    </svg>
-                  )}
-                </div>
-
-                {hasSubItems && isExpanded && (
-                  <div className={styles.subItems}>
-                    {item.subItems!.map((subItem) => (
-                      <Link
-                        key={subItem.href}
-                        href={subItem.href}
-                        className={`${styles.subItem} ${
-                          pathname === subItem.href ? styles.subItemActive : ''
-                        }`}
-                      >
-                        {subItem.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
+          <div className={styles.navGroup}>
+            <div className={styles.navLink} onClick={() => toggleExpand("Transfers")}>
+              <span className={styles.navIcon}>⇄</span> Transfers
+              <span className={`${styles.arrow} ${expandedItems.includes("Transfers") ? styles.arrowOpen : ""}`}>›</span>
+            </div>
+            {expandedItems.includes("Transfers") && (
+              <div className={styles.subMenu}>
+                <Link href="/transfers/internal" className={`${styles.subLink} ${pathname === "/transfers/internal" ? styles.active : ""}`}>Internal Transfer</Link>
+                <Link href="/transfers/wire" className={`${styles.subLink} ${pathname === "/transfers/wire" ? styles.active : ""}`}>Wire Transfer</Link>
+                <Link href="/transfers/international" className={`${styles.subLink} ${pathname === "/transfers/international" ? styles.active : ""}`}>International</Link>
               </div>
-            );
-          })}
-        </div>
+            )}
+          </div>
 
-        {/* User Profile Section */}
+          <div className={styles.navGroup}>
+            <div className={styles.navLink} onClick={() => toggleExpand("Crypto")}>
+              <span className={styles.navIcon}>₿</span> Crypto
+              <span className={`${styles.arrow} ${expandedItems.includes("Crypto") ? styles.arrowOpen : ""}`}>›</span>
+            </div>
+            {expandedItems.includes("Crypto") && (
+              <div className={styles.subMenu}>
+                <Link href="/crypto" className={`${styles.subLink} ${pathname === "/crypto" ? styles.active : ""}`}>Wallet</Link>
+                <Link href="/crypto/convert" className={`${styles.subLink} ${pathname === "/crypto/convert" ? styles.active : ""}`}>Buy / Convert</Link>
+                <Link href="/crypto/send" className={`${styles.subLink} ${pathname === "/crypto/send" ? styles.active : ""}`}>Send Crypto</Link>
+                <Link href="/crypto/transactions" className={`${styles.subLink} ${pathname === "/crypto/transactions" ? styles.active : ""}`}>Transactions</Link>
+              </div>
+            )}
+          </div>
+
+          <Link href="/transactions" className={`${styles.navLink} ${pathname === "/transactions" ? styles.active : ""}`}>
+            <span className={styles.navIcon}>↗</span> Transactions
+          </Link>
+
+          <div className={styles.navGroup}>
+            <div className={styles.navLink} onClick={() => toggleExpand("Cards")}>
+              <span className={styles.navIcon}>▭</span> Cards
+              <span className={`${styles.arrow} ${expandedItems.includes("Cards") ? styles.arrowOpen : ""}`}>›</span>
+            </div>
+            {expandedItems.includes("Cards") && (
+              <div className={styles.subMenu}>
+                <Link href="/accounts/credit-cards" className={`${styles.subLink} ${pathname === "/accounts/credit-cards" ? styles.active : ""}`}>My Cards</Link>
+                <Link href="/accounts/credit-cards/apply" className={`${styles.subLink} ${pathname === "/accounts/credit-cards/apply" ? styles.active : ""}`}>Apply for Card</Link>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.navGroup}>
+            <div className={styles.navLink} onClick={() => toggleExpand("Investments")}>
+              <span className={styles.navIcon}>△</span> Investments
+              <span className={`${styles.arrow} ${expandedItems.includes("Investments") ? styles.arrowOpen : ""}`}>›</span>
+            </div>
+            {expandedItems.includes("Investments") && (
+              <div className={styles.subMenu}>
+                <Link href="/investments/portfolio" className={`${styles.subLink} ${pathname === "/investments/portfolio" ? styles.active : ""}`}>Portfolio</Link>
+                <Link href="/investments/trading" className={`${styles.subLink} ${pathname === "/investments/trading" ? styles.active : ""}`}>Trading</Link>
+              </div>
+            )}
+          </div>
+
+          <Link href="/bills" className={`${styles.navLink} ${pathname === "/bills" ? styles.active : ""}`}>
+            <span className={styles.navIcon}>◑</span> Bills
+          </Link>
+
+          <Link href="/accounts/statements" className={`${styles.navLink} ${pathname === "/accounts/statements" ? styles.active : ""}`}>
+            <span className={styles.navIcon}>▤</span> Statements
+          </Link>
+
+          {isAdmin && (
+            <div className={styles.navGroup}>
+              <div className={styles.navLink} onClick={() => toggleExpand("Admin")}>
+                <span className={styles.navIcon}>⚙</span> Admin
+                <span className={`${styles.arrow} ${expandedItems.includes("Admin") ? styles.arrowOpen : ""}`}>›</span>
+              </div>
+              {expandedItems.includes("Admin") && (
+                <div className={styles.subMenu}>
+                  <Link href="/dashboard/admin" className={`${styles.subLink} ${pathname === "/dashboard/admin" ? styles.active : ""}`}>Dashboard</Link>
+                  <Link href="/admin/users" className={`${styles.subLink} ${pathname === "/admin/users" ? styles.active : ""}`}>Users</Link>
+                  <Link href="/admin/transactions" className={`${styles.subLink} ${pathname === "/admin/transactions" ? styles.active : ""}`}>Approvals</Link>
+                  <Link href="/admin/crypto" className={`${styles.subLink} ${pathname === "/admin/crypto" ? styles.active : ""}`}>Crypto Approvals</Link>
+                </div>
+              )}
+            </div>
+          )}
+        </nav>
+
         <div className={styles.userSection}>
           <div className={styles.userCard}>
-            <div className={styles.userAvatar}>
-              {userName.charAt(0).toUpperCase()}
-            </div>
+            <div className={styles.avatar}>{userName.charAt(0).toUpperCase()}</div>
             <div className={styles.userInfo}>
               <div className={styles.userName}>{userName}</div>
               <div className={styles.userEmail}>{userEmail}</div>
             </div>
-            <button 
-              className={styles.userMenu}
-              onClick={() => router.push('/settings')}
-              aria-label="Settings"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24"/>
-              </svg>
-            </button>
+            <button className={styles.settingsBtn} onClick={() => router.push("/settings")}>⚙</button>
           </div>
-
-          <div className={styles.securityBadge}>
-            <svg className={styles.securityIcon} viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L4 7v6c0 4.52 3.13 8.75 8 9.88 4.87-1.13 8-5.36 8-9.88V7l-8-5z"/>
-            </svg>
-            <span>Secure Session</span>
-          </div>
+          <div className={styles.security}>● 256-bit Encrypted Session</div>
         </div>
-      </nav>
+      </aside>
     </>
   );
 }

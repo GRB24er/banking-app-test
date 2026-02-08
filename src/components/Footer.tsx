@@ -4,6 +4,7 @@
 import { useState } from "react";
 import styles from "./Footer.module.css";
 import Link from "next/link";
+import Image from "next/image";
 
 const Footer = () => {
   const [emailSubscribe, setEmailSubscribe] = useState("");
@@ -29,15 +30,13 @@ const Footer = () => {
           {/* Brand Section */}
           <div className={styles.brandSection}>
             <div className={styles.brand}>
-              <div className={styles.brandIcon}>
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 2L4 7v6c0 4.52 3.13 8.75 8 9.88 4.87-1.13 8-5.36 8-9.88V7l-8-5z"/>
-                </svg>
-              </div>
-              <div className={styles.brandText}>
-                <h3 className={styles.brandName}>ZentriBank</h3>
-                <p className={styles.brandTagline}>Private Banking Excellence</p>
-              </div>
+              <Image 
+                src="/images/Logo.png" 
+                alt="Logo" 
+                width={160} 
+                height={150} 
+                priority 
+              />
             </div>
             
             <p className={styles.brandDescription}>
@@ -139,58 +138,54 @@ const Footer = () => {
 
       {/* Trust Badges */}
       <div className={styles.trustSection}>
-        <div className={styles.container}>
-          <div className={styles.trustGrid}>
-            <div className={styles.trustBadge}>
-              <svg className={styles.trustIcon} viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L4 7v6c0 4.52 3.13 8.75 8 9.88 4.87-1.13 8-5.36 8-9.88V7l-8-5z"/>
-              </svg>
-              <span>FDIC Insured</span>
-            </div>
-            <div className={styles.trustBadge}>
-              <svg className={styles.trustIcon} viewBox="0 0 24 24" fill="currentColor">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-              <span>256-bit Encryption</span>
-            </div>
-            <div className={styles.trustBadge}>
-              <svg className={styles.trustIcon} viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-              <span>Equal Housing</span>
-            </div>
-            <div className={styles.trustBadge}>
-              <svg className={styles.trustIcon} viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-              <span>4.9/5 Rated</span>
-            </div>
+        <div className={styles.trustGrid}>
+          <div className={styles.trustBadge}>
+            <svg className={styles.trustIcon} viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L4 7v6c0 4.52 3.13 8.75 8 9.88 4.87-1.13 8-5.36 8-9.88V7l-8-5z"/>
+            </svg>
+            <span>FDIC Insured</span>
+          </div>
+          <div className={styles.trustBadge}>
+            <svg className={styles.trustIcon} viewBox="0 0 24 24" fill="currentColor">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <span>256-bit Encryption</span>
+          </div>
+          <div className={styles.trustBadge}>
+            <svg className={styles.trustIcon} viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span>Equal Housing</span>
+          </div>
+          <div className={styles.trustBadge}>
+            <svg className={styles.trustIcon} viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <span>4.9/5 Rated</span>
           </div>
         </div>
       </div>
 
       {/* Bottom Bar */}
       <div className={styles.bottomBar}>
-        <div className={styles.container}>
-          <div className={styles.bottomContent}>
-            <div className={styles.copyright}>
-              <p>© {currentYear} ZentriBank. All rights reserved.</p>
-              <p className={styles.legalText}>
-                ZentriBank, N.A. Member FDIC • NMLS #123456
-              </p>
-            </div>
-            
-            <div className={styles.legalLinks}>
-              <Link href="/privacy">Privacy</Link>
-              <span className={styles.separator}>•</span>
-              <Link href="/terms">Terms</Link>
-              <span className={styles.separator}>•</span>
-              <Link href="/accessibility">Accessibility</Link>
-              <span className={styles.separator}>•</span>
-              <Link href="/disclosures">Disclosures</Link>
-            </div>
+        <div className={styles.bottomContent}>
+          <div className={styles.copyright}>
+            <p>© {currentYear} Horizon Global Bank. All rights reserved.</p>
+            <p className={styles.legalText}>
+              Member FDIC • NMLS #123456
+            </p>
+          </div>
+          
+          <div className={styles.legalLinks}>
+            <Link href="/privacy">Privacy</Link>
+            <span className={styles.separator}>•</span>
+            <Link href="/terms">Terms</Link>
+            <span className={styles.separator}>•</span>
+            <Link href="/accessibility">Accessibility</Link>
+            <span className={styles.separator}>•</span>
+            <Link href="/disclosures">Disclosures</Link>
           </div>
         </div>
       </div>

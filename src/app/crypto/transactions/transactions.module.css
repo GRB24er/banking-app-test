@@ -1,0 +1,200 @@
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.875rem;
+  cursor: pointer;
+  margin-bottom: 12px;
+  padding: 0;
+  display: block;
+}
+
+.backBtn:hover {
+  color: #f7931a;
+}
+
+.pageTitle {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+}
+
+.filterBtn {
+  padding: 10px 20px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  color: #888;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filterBtn:hover {
+  border-color: #444;
+}
+
+.filterActive {
+  background: rgba(247, 147, 26, 0.1);
+  border-color: #f7931a;
+  color: #f7931a;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 80px 20px;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 16px;
+}
+
+.emptyIcon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 20px;
+}
+
+.emptyState h2 {
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.emptyState p {
+  color: #888;
+  margin: 0;
+}
+
+/* Transactions List */
+.transactionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.txCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.txCard:hover {
+  border-color: #333;
+}
+
+.txIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: #1a1a1a;
+}
+
+.txIcon[data-type="conversion"] {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.txIcon[data-type="send"] {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.txIcon[data-type="receive"] {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.txMain {
+  flex: 1;
+}
+
+.txTitle {
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.txMeta {
+  display: flex;
+  gap: 16px;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.txRef {
+  font-family: 'SF Mono', monospace;
+  color: #888;
+}
+
+.txAmounts {
+  text-align: right;
+}
+
+.txAmountFrom {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.txAmountTo {
+  color: #10b981;
+  font-size: 0.875rem;
+  font-family: 'SF Mono', monospace;
+}
+
+.txUsd {
+  color: #888;
+  font-size: 0.875rem;
+}
+
+.txStatus {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--status-color);
+  border-radius: 20px;
+  color: var(--status-color);
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .txCard {
+    flex-wrap: wrap;
+  }
+  
+  .txAmounts {
+    order: 4;
+    flex: 1;
+  }
+  
+  .txStatus {
+    order: 5;
+  }
+}

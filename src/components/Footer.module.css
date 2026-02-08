@@ -1,40 +1,15 @@
-/* Footer.module.css - Elite Enterprise Footer */
+/* Footer.module.css - Dark Theme */
 
-/* ===== BASE FOOTER ===== */
 .footer {
-  background: linear-gradient(180deg, #064e3b 0%, #022c22 100%);
-  color: #d1fae5;
+  background: linear-gradient(180deg, #0f1117 0%, #0a0a0f 100%);
+  color: #8b8ca5;
   margin-top: auto;
-  position: relative;
-  overflow: hidden;
+  border-top: 1px solid #1e2130;
 }
 
-.footer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(16, 185, 129, 0.5) 50%, transparent 100%);
-}
-
-/* ===== MAIN SECTION ===== */
+/* Main Section */
 .footerMain {
-  padding: 4rem 2rem 3rem;
-  position: relative;
-}
-
-.footerMain::before {
-  content: '';
-  position: absolute;
-  top: -100px;
-  right: -100px;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
+  padding: 48px 24px 40px;
 }
 
 .container {
@@ -42,36 +17,32 @@
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1.5fr 2.5fr;
-  gap: 4rem;
-  position: relative;
-  z-index: 1;
+  gap: 48px;
 }
 
-/* ===== BRAND SECTION ===== */
+/* Brand Section */
 .brandSection {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 24px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: 16px;
 }
 
 .brandIcon {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-radius: 16px;
+  background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 
-    0 8px 24px rgba(16, 185, 129, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  color: white;
+  color: #000000;
+  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.3);
 }
 
 .brandIcon svg {
@@ -82,83 +53,76 @@
 .brandText {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 4px;
 }
 
 .brandName {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: white;
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
   margin: 0;
-  letter-spacing: -0.02em;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .brandTagline {
-  font-size: 0.875rem;
-  color: #6ee7b7;
+  font-size: 13px;
+  color: #D4AF37;
   margin: 0;
   font-weight: 500;
 }
 
 .brandDescription {
-  font-size: 0.9375rem;
+  font-size: 14px;
   line-height: 1.7;
-  color: #a7f3d0;
-  max-width: 400px;
+  color: #8b8ca5;
+  max-width: 380px;
 }
 
-/* ===== NEWSLETTER ===== */
+/* Newsletter */
 .newsletter {
   display: flex;
-  gap: 0.5rem;
-  max-width: 400px;
+  gap: 8px;
+  max-width: 380px;
 }
 
 .newsletterInput {
   flex: 1;
-  padding: 1rem 1.25rem;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 12px;
-  color: white;
-  font-size: 0.9375rem;
+  padding: 14px 16px;
+  background: #1a1a2e;
+  border: 1px solid #2d2d4d;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 14px;
   outline: none;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
 .newsletterInput::placeholder {
-  color: #6ee7b7;
+  color: #5a5c75;
 }
 
 .newsletterInput:focus {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .newsletterButton {
-  width: 52px;
-  height: 52px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: white;
-  box-shadow: 
-    0 4px 12px rgba(16, 185, 129, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.2s;
+  color: #ffffff;
+  flex-shrink: 0;
 }
 
 .newsletterButton:hover {
   transform: translateY(-2px);
-  box-shadow: 
-    0 6px 20px rgba(16, 185, 129, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
 }
 
 .newsletterButton svg {
@@ -167,62 +131,49 @@
 }
 
 .successMessage {
-  color: #34d399;
-  font-size: 0.875rem;
+  color: #22c55e;
+  font-size: 13px;
   margin: 0;
-  font-weight: 600;
-  animation: fadeSlideUp 0.4s ease-out;
+  font-weight: 500;
 }
 
-@keyframes fadeSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ===== SOCIAL LINKS ===== */
+/* Social Links */
 .socialLinks {
   display: flex;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
 .socialLink {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 12px;
-  color: #6ee7b7;
+  background: #1a1a2e;
+  border: 1px solid #2d2d4d;
+  border-radius: 10px;
+  color: #8b8ca5;
   text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
 }
 
 .socialLink:hover {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-color: transparent;
-  color: white;
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+  transform: translateY(-3px);
 }
 
 .socialLink svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
-/* ===== LINKS GRID ===== */
+/* Links Grid */
 .linksGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 3rem;
+  gap: 32px;
 }
 
 .linkSection {
@@ -231,24 +182,24 @@
 }
 
 .linkTitle {
-  font-size: 0.875rem;
+  font-size: 12px;
   font-weight: 700;
-  color: white;
-  margin-bottom: 1.25rem;
+  color: #ffffff;
+  margin-bottom: 16px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   position: relative;
-  padding-bottom: 0.75rem;
+  padding-bottom: 10px;
 }
 
 .linkTitle::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 40px;
+  width: 32px;
   height: 2px;
-  background: linear-gradient(90deg, #10b981 0%, transparent 100%);
+  background: #D4AF37;
   border-radius: 1px;
 }
 
@@ -258,7 +209,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 10px;
 }
 
 .linkList li {
@@ -266,41 +217,24 @@
 }
 
 .linkList a {
-  color: #a7f3d0;
+  color: #8b8ca5;
   text-decoration: none;
-  font-size: 0.9375rem;
-  transition: all 0.3s;
-  display: inline-flex;
-  align-items: center;
-  font-weight: 500;
-  position: relative;
-}
-
-.linkList a::before {
-  content: '';
-  position: absolute;
-  left: -8px;
-  width: 0;
-  height: 2px;
-  background: #10b981;
-  transition: width 0.3s;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: inline-block;
 }
 
 .linkList a:hover {
-  color: white;
-  transform: translateX(8px);
+  color: #ffffff;
+  transform: translateX(4px);
 }
 
-.linkList a:hover::before {
-  width: 4px;
-}
-
-/* ===== TRUST SECTION ===== */
+/* Trust Section */
 .trustSection {
-  background: rgba(0, 0, 0, 0.2);
-  border-top: 1px solid rgba(16, 185, 129, 0.15);
-  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
-  padding: 2rem 2rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid #1e2130;
+  border-bottom: 1px solid #1e2130;
+  padding: 24px;
 }
 
 .trustGrid {
@@ -308,41 +242,40 @@
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
+  gap: 16px;
 }
 
 .trustBadge {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: rgba(16, 185, 129, 0.05);
-  border: 1px solid rgba(16, 185, 129, 0.15);
-  border-radius: 12px;
-  transition: all 0.3s;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #a7f3d0;
+  gap: 10px;
+  padding: 14px;
+  background: #1a1a2e;
+  border: 1px solid #2d2d4d;
+  border-radius: 10px;
+  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8b8ca5;
 }
 
 .trustBadge:hover {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
+  border-color: #3b82f6;
   transform: translateY(-2px);
 }
 
 .trustIcon {
-  width: 24px;
-  height: 24px;
-  color: #10b981;
+  width: 22px;
+  height: 22px;
+  color: #D4AF37;
   flex-shrink: 0;
 }
 
-/* ===== BOTTOM BAR ===== */
+/* Bottom Bar */
 .bottomBar {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 1.5rem 2rem;
+  background: #0a0a0f;
+  padding: 20px 24px;
 }
 
 .bottomContent {
@@ -352,57 +285,53 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 16px;
 }
 
 .copyright {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 4px;
 }
 
 .copyright p {
   margin: 0;
-  font-size: 0.875rem;
-  color: #a7f3d0;
-  font-weight: 500;
+  font-size: 13px;
+  color: #8b8ca5;
 }
 
 .legalText {
-  font-size: 0.8125rem;
-  color: #6ee7b7;
-  opacity: 0.9;
+  font-size: 12px;
+  color: #5a5c75;
 }
 
 .legalLinks {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .legalLinks a {
-  color: #a7f3d0;
+  color: #8b8ca5;
   text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 13px;
   transition: color 0.2s;
 }
 
 .legalLinks a:hover {
-  color: white;
+  color: #ffffff;
 }
 
 .separator {
-  color: #6ee7b7;
-  opacity: 0.5;
+  color: #5a5c75;
 }
 
-/* ===== RESPONSIVE ===== */
+/* Responsive */
 @media (max-width: 1200px) {
   .container {
     grid-template-columns: 1fr;
-    gap: 3rem;
+    gap: 40px;
   }
   
   .linksGrid {
@@ -416,12 +345,12 @@
 
 @media (max-width: 768px) {
   .footerMain {
-    padding: 3rem 1.5rem 2rem;
+    padding: 32px 16px;
   }
   
   .linksGrid {
     grid-template-columns: 1fr;
-    gap: 2rem;
+    gap: 24px;
   }
   
   .trustGrid {
@@ -429,17 +358,16 @@
   }
   
   .trustSection {
-    padding: 1.5rem 1rem;
+    padding: 20px 16px;
   }
   
   .bottomBar {
-    padding: 1.5rem 1rem;
+    padding: 16px;
   }
   
   .bottomContent {
     flex-direction: column;
     text-align: center;
-    gap: 1rem;
   }
   
   .legalLinks {
@@ -448,28 +376,5 @@
   
   .newsletter {
     max-width: 100%;
-  }
-}
-
-/* ===== ANIMATIONS ===== */
-.brandSection,
-.linksGrid,
-.trustBadge {
-  animation: fadeUp 0.6s ease-out both;
-}
-
-.linkSection:nth-child(1) { animation-delay: 0.1s; }
-.linkSection:nth-child(2) { animation-delay: 0.2s; }
-.linkSection:nth-child(3) { animation-delay: 0.3s; }
-.linkSection:nth-child(4) { animation-delay: 0.4s; }
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
