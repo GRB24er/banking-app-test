@@ -427,7 +427,7 @@ function SendCryptoContent() {
                     <div className={sendStyles.approvalNotice}>
                       <span className={sendStyles.noticeIcon}>🔒</span>
                       <div>
-                        <strong>Admin Approval Required</strong>
+                        <strong>This transaction is currently undergoing internal review in line with standard banking procedures. Processing will continue once the review is completed.</strong>
                         <p>For security, this transfer will be reviewed before processing. You'll receive an email once approved.</p>
                       </div>
                     </div>
@@ -455,7 +455,7 @@ function SendCryptoContent() {
                 <div className={sendStyles.successIcon}>✓</div>
                 <h2>Transfer Submitted</h2>
                 <p className={sendStyles.successSubtext}>
-                  Your transfer is pending admin approval
+                  Your transfer is pending approval
                 </p>
                 
                 <div className={sendStyles.successDetails}>
