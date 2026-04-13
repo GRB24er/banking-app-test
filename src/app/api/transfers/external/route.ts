@@ -146,13 +146,24 @@ export async function POST(request: NextRequest) {
     // User must complete verification before funds release
     // =====================================================
 
+    // ACH Settlement Simulation:
+    // External transfers start as 'initiated', then progress:
+    // initiated → processing (1 day) → completed/settled (2-3 days)
+    // This is handled by the /api/cron/ach-settlement endpoint
+
+    const processingDate = new Date();
+    processingDate.setDate(processingDate.getDate() + 1);
+
+    const settlementDate = new Date();
+    settlementDate.setDate(settlementDate.getDate() + estimatedDays);
+
     const mainTransaction = await Transaction.create({
       userId: user._id,
       type: 'transfer-out',
       currency: 'USD',
       amount: amount,
       description: description || `Transfer to ${recipientName}`,
-      status: 'pending',
+      status: 'initiated',
       accountType: fromAccount,
       posted: false,
       postedAt: null,
@@ -172,6 +183,11 @@ export async function POST(request: NextRequest) {
         fee,
         totalAmount,
         estimatedDelivery: estimatedDelivery.toISOString(),
+        // ACH timeline tracking
+        achStatus: 'initiated',
+        achInitiatedAt: new Date().toISOString(),
+        achEstimatedProcessing: processingDate.toISOString(),
+        achEstimatedSettlement: settlementDate.toISOString(),
         // Verification fields - admin will populate these
         verificationRequired: true,
         verificationCode: null,
@@ -312,7 +328,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: "Transfer initiated successfully. Awaiting verification.",
+      message: "Transfer initiated successfully. Your ACH transfer is being processed.",
       reference: transferRef,
       transferReference: transferRef,
       transfer: {
@@ -322,8 +338,13 @@ export async function POST(request: NextRequest) {
         totalAmount,
         recipientName,
         recipientBank,
-        status: 'pending',
-        estimatedDelivery: estimatedDelivery.toISOString()
+        status: 'initiated',
+        estimatedDelivery: estimatedDelivery.toISOString(),
+        achTimeline: {
+          initiated: new Date().toISOString(),
+          estimatedProcessing: processingDate.toISOString(),
+          estimatedSettlement: settlementDate.toISOString(),
+        }
       }
     }, { status: 200 });
 

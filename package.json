@@ -24,6 +24,8 @@
     "firebase": "^12.1.0",
     "framer-motion": "^12.23.12",
     "jsonwebtoken": "^9.0.3",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.536.0",
     "mongoose": "^8.15.1",
     "next": "^15.1.3",

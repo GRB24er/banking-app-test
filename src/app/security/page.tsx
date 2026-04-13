@@ -1,22 +1,78 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import styles from "./security.module.css";
 
+interface LoginEntry {
+  _id: string;
+  status: 'success' | 'failed';
+  ipAddress: string;
+  location: string;
+  device: string;
+  browser: string;
+  os: string;
+  isNewDevice: boolean;
+  createdAt: string;
+}
+
 export default function SecurityPage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState('overview');
+  const [recentActivity, setRecentActivity] = useState<LoginEntry[]>([]);
+  const [deviceCount, setDeviceCount] = useState(0);
+  const [loadingActivity, setLoadingActivity] = useState(true);
 
   const securityScore = 85;
-  
-  const recentActivity = [
-    { id: 1, action: "Login", device: "Chrome on Windows", location: "San Francisco, CA", time: "2 minutes ago", status: "success" },
-    { id: 2, action: "Password Changed", device: "Mobile App", location: "San Francisco, CA", time: "2 days ago", status: "success" },
-    { id: 3, action: "Failed Login Attempt", device: "Unknown Browser", location: "New York, NY", time: "5 days ago", status: "failed" },
-    { id: 4, action: "2FA Enabled", device: "Chrome on MacOS", location: "San Francisco, CA", time: "1 week ago", status: "success" }
-  ];
+
+  useEffect(() => {
+    fetchRecentActivity();
+    fetchDeviceCount();
+  }, []);
+
+  const fetchRecentActivity = async () => {
+    try {
+      const res = await fetch('/api/security/login-history?limit=5');
+      const data = await res.json();
+      if (data.success) {
+        setRecentActivity(data.history);
+      }
+    } catch (err) {
+      console.error('Failed to fetch activity:', err);
+    } finally {
+      setLoadingActivity(false);
+    }
+  };
+
+  const fetchDeviceCount = async () => {
+    try {
+      const res = await fetch('/api/security/devices');
+      const data = await res.json();
+      if (data.success) {
+        setDeviceCount(data.devices.length);
+      }
+    } catch (err) {
+      console.error('Failed to fetch devices:', err);
+    }
+  };
+
+  const getTimeAgo = (dateStr: string) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return new Date(dateStr).toLocaleDateString();
+  };
 
   return (
     <div className={styles.wrapper}>
@@ -56,9 +112,9 @@ export default function SecurityPage() {
               </div>
               <div className={styles.statusContent}>
                 <h3>Login Alerts</h3>
-                <p>Active - Email & SMS</p>
+                <p>Active - Email alerts on new devices</p>
               </div>
-              <button className={styles.manageBtn}>Configure</button>
+              <button className={styles.manageBtn} onClick={() => router.push('/security/login-history')}>View History</button>
             </div>
 
             <div className={styles.statusCard}>
@@ -78,9 +134,9 @@ export default function SecurityPage() {
               </div>
               <div className={styles.statusContent}>
                 <h3>Device Management</h3>
-                <p>3 trusted devices</p>
+                <p>{deviceCount} trusted device{deviceCount !== 1 ? 's' : ''}</p>
               </div>
-              <button className={styles.manageBtn}>View Devices</button>
+              <button className={styles.manageBtn} onClick={() => router.push('/security/devices')}>View Devices</button>
             </div>
           </div>
 
@@ -140,25 +196,43 @@ export default function SecurityPage() {
           <div className={styles.activitySection}>
             <div className={styles.activityHeader}>
               <h2>Recent Security Activity</h2>
-              <button className={styles.viewAllBtn}>View All</button>
+              <button className={styles.viewAllBtn} onClick={() => router.push('/security/login-history')}>View All</button>
             </div>
             <div className={styles.activityList}>
-              {recentActivity.map(activity => (
-                <div key={activity.id} className={styles.activityItem}>
-                  <div className={styles.activityIcon}>
-                    {activity.status === 'success' ? '✓' : '⚠️'}
-                  </div>
+              {loadingActivity ? (
+                <div className={styles.activityItem}>
                   <div className={styles.activityDetails}>
-                    <div className={styles.activityAction}>{activity.action}</div>
-                    <div className={styles.activityMeta}>
-                      {activity.device} • {activity.location} • {activity.time}
-                    </div>
-                  </div>
-                  <div className={`${styles.activityStatus} ${activity.status === 'success' ? styles.success : styles.failed}`}>
-                    {activity.status}
+                    <div className={styles.activityAction}>Loading activity...</div>
                   </div>
                 </div>
-              ))}
+              ) : recentActivity.length === 0 ? (
+                <div className={styles.activityItem}>
+                  <div className={styles.activityDetails}>
+                    <div className={styles.activityAction}>No recent activity</div>
+                    <div className={styles.activityMeta}>Login events will appear here after you sign in.</div>
+                  </div>
+                </div>
+              ) : (
+                recentActivity.map(activity => (
+                  <div key={activity._id} className={styles.activityItem}>
+                    <div className={styles.activityIcon}>
+                      {activity.status === 'success' ? '✓' : '⚠️'}
+                    </div>
+                    <div className={styles.activityDetails}>
+                      <div className={styles.activityAction}>
+                        {activity.status === 'success' ? 'Successful Login' : 'Failed Login Attempt'}
+                        {activity.isNewDevice && ' (New Device)'}
+                      </div>
+                      <div className={styles.activityMeta}>
+                        {activity.browser} on {activity.os} &bull; {activity.location} &bull; {getTimeAgo(activity.createdAt)}
+                      </div>
+                    </div>
+                    <div className={`${styles.activityStatus} ${activity.status === 'success' ? styles.success : styles.failed}`}>
+                      {activity.status}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

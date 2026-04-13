@@ -69,6 +69,7 @@ export async function middleware(req: NextRequest) {
       '/profile',
       '/settings',
       '/transactions',
+      '/security',
     ];
 
     if (protectedPaths.some(p => path.startsWith(p))) {
@@ -98,5 +99,6 @@ export const config = {
     '/profile/:path*',
     '/settings/:path*',
     '/transactions/:path*',
+    '/security/:path*',
   ],
 };

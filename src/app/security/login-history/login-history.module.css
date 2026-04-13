@@ -1,0 +1,264 @@
+.wrapper {
+  display: flex;
+  min-height: 100vh;
+  background: #f9fafb;
+}
+
+.main {
+  flex: 1;
+}
+
+.content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  margin-bottom: 2rem;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  display: block;
+}
+
+.backBtn:hover {
+  text-decoration: underline;
+}
+
+.pageHeader h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.pageHeader p {
+  color: #6b7280;
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.filterBtn {
+  padding: 0.5rem 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filterBtn:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.filterBtn.active {
+  background: #6366f1;
+  color: white;
+  border-color: #6366f1;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.loading,
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.historyItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.historyItem:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.failedItem {
+  border-left: 3px solid #ef4444;
+}
+
+.statusIndicator {
+  padding-top: 4px;
+}
+
+.statusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.successDot {
+  background: #10b981;
+}
+
+.failedDot {
+  background: #ef4444;
+}
+
+.entryDetails {
+  flex: 1;
+}
+
+.entryHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.entryAction {
+  font-weight: 700;
+  color: #111827;
+  font-size: 0.95rem;
+}
+
+.newDeviceBadge {
+  padding: 2px 10px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statusBadge {
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.successBadge {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.failedBadge {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.entryMeta {
+  font-size: 0.85rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.separator {
+  color: #d1d5db;
+}
+
+.failureReason {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #dc2626;
+  font-style: italic;
+}
+
+.entryTime {
+  text-align: right;
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.timeAgo {
+  font-weight: 600;
+  color: #111827;
+  font-size: 0.875rem;
+}
+
+.timeExact {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.pageBtn {
+  padding: 0.5rem 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pageBtn:not(:disabled):hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.pageInfo {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .historyItem {
+    flex-direction: column;
+  }
+  .entryTime {
+    text-align: left;
+  }
+  .entryMeta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .separator {
+    display: none;
+  }
+}
