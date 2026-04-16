@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import styles from "./wire.module.css";
+import styles from "./wire/wire.module.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";

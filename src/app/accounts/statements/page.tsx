@@ -17,6 +17,8 @@ export default function StatementsPage() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
+  const [downloading, setDownloading] = useState(false);
+
   const requestStatement = async () => {
     if (!startDate || !endDate) {
       setError("Please select both start and end dates");
@@ -52,6 +54,48 @@ export default function StatementsPage() {
       setError('Failed to request statement');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const downloadPDF = async () => {
+    if (!startDate || !endDate) {
+      setError("Please select both start and end dates");
+      return;
+    }
+
+    setDownloading(true);
+    setError("");
+
+    try {
+      const response = await fetch('/api/statements/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate,
+          endDate,
+          accountType
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || 'Failed to generate PDF');
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ZentriBank_Statement_${accountType}_${startDate}_${endDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError('Failed to download PDF');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -137,13 +181,24 @@ export default function StatementsPage() {
                   </div>
                 )}
 
-                <button 
-                  onClick={requestStatement}
-                  disabled={loading}
-                  className={styles.requestButton}
-                >
-                  {loading ? 'Sending Request...' : 'Request Statement'}
-                </button>
+                <div className={styles.buttonGroup}>
+                  <button
+                    onClick={downloadPDF}
+                    disabled={downloading}
+                    className={styles.downloadButton}
+                  >
+                    <Download size={18} />
+                    {downloading ? 'Generating PDF...' : 'Download PDF'}
+                  </button>
+                  <button
+                    onClick={requestStatement}
+                    disabled={loading}
+                    className={styles.requestButton}
+                  >
+                    <Mail size={18} />
+                    {loading ? 'Sending Request...' : 'Email Statement'}
+                  </button>
+                </div>
               </div>
             </div>
 

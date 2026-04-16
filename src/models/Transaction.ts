@@ -16,12 +16,14 @@ export type TxType =
   | 'adjustment-credit' 
   | 'adjustment-debit';
 
-export type TxStatus = 
-  | 'pending' 
-  | 'completed' 
-  | 'approved' 
-  | 'rejected' 
-  | 'pending_verification';
+export type TxStatus =
+  | 'pending'
+  | 'completed'
+  | 'approved'
+  | 'rejected'
+  | 'pending_verification'
+  | 'initiated'
+  | 'processing';
 
 export interface ITransaction extends Document {
   userId: mongoose.Types.ObjectId;
@@ -93,7 +95,7 @@ const TransactionSchema: Schema<ITransaction> = new mongoose.Schema(
     },
     status: { 
       type: String, 
-      enum: ['pending', 'completed', 'approved', 'rejected', 'pending_verification'], 
+      enum: ['pending', 'completed', 'approved', 'rejected', 'pending_verification', 'initiated', 'processing'],
       default: 'pending', 
       index: true 
     },
