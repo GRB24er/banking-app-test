@@ -15,16 +15,25 @@ interface InternationalTransferRequest {
   recipientName: string;
   recipientAccount: string;
   recipientBank: string;
-  swiftCode: string;
+  swiftCode?: string;
+  recipientSWIFT?: string;
   iban?: string;
+  recipientIBAN?: string;
   recipientCountry: string;
   recipientAddress: string;
-  recipientBankAddress: string;
+  recipientCity?: string;
+  recipientPostalCode?: string;
+  recipientBankAddress?: string;
   amount: number | string;
   currency?: string;
   description?: string;
   purposeOfTransfer: string;
   transferSpeed?: 'standard' | 'express';
+  // Country-specific identifiers (transit/institution, IFSC, CLABE, BSB, etc.)
+  extraBankFields?: Record<string, string>;
+  // Optional intermediary
+  correspondentBank?: string;
+  correspondentBankSWIFT?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -50,28 +59,43 @@ export async function POST(request: NextRequest) {
       userEmail: session.user.email
     });
     
-    const { 
+    const {
       fromAccount,
       recipientName,
       recipientAccount,
       recipientBank,
-      swiftCode,
-      iban,
       recipientCountry,
       recipientAddress,
-      recipientBankAddress,
+      recipientCity,
+      recipientPostalCode,
       amount,
       currency = 'USD',
       description,
       purposeOfTransfer,
-      transferSpeed = 'standard'
+      transferSpeed = 'standard',
+      extraBankFields = {},
+      correspondentBank,
+      correspondentBankSWIFT,
     } = body;
+    // Accept both legacy (swiftCode/iban) and new (recipientSWIFT/recipientIBAN) field names
+    const swiftCode = body.swiftCode || body.recipientSWIFT || '';
+    const iban = body.iban || body.recipientIBAN || '';
+    const recipientBankAddress = body.recipientBankAddress || `${recipientBank} branch`;
 
     // Validation
     const missingFields = [];
+    // Account substitutes that some countries use INSTEAD of a plain account number
+    const ACCOUNT_EQUIVALENTS = ['clabe', 'nuban', 'cbu', 'nzAccountFormatted', 'rib', 'cci'];
+    const hasAccountEquivalent = Object.entries(extraBankFields || {}).some(
+      ([k, v]) => ACCOUNT_EQUIVALENTS.includes(k) && String(v || '').trim().length > 0
+    );
+    const hasIban = !!iban && String(iban).trim().length > 0;
+
     if (!fromAccount) missingFields.push('fromAccount');
     if (!recipientName?.trim()) missingFields.push('recipientName');
-    if (!recipientAccount?.trim()) missingFields.push('recipientAccount');
+    if (!recipientAccount?.trim() && !hasAccountEquivalent && !hasIban) {
+      missingFields.push('recipientAccount');
+    }
     if (!recipientBank?.trim()) missingFields.push('recipientBank');
     if (!swiftCode?.trim()) missingFields.push('swiftCode');
     if (!recipientCountry?.trim()) missingFields.push('recipientCountry');
@@ -226,11 +250,13 @@ export async function POST(request: NextRequest) {
       date: new Date(),
       metadata: {
         recipientName,
-        recipientAccount: recipientAccount.slice(-4),
+        recipientAccount: recipientAccount ? recipientAccount.slice(-4) : '',
         recipientBank,
         swiftCode,
-        iban: iban?.slice(-4),
+        iban: iban ? iban.slice(-4) : '',
         recipientCountry,
+        recipientCity: recipientCity || '',
+        recipientPostalCode: recipientPostalCode || '',
         recipientAddress,
         recipientBankAddress,
         targetCurrency: currency,
@@ -240,7 +266,11 @@ export async function POST(request: NextRequest) {
         exchangeFee,
         totalFees,
         totalAmount,
-        estimatedDays
+        estimatedDays,
+        // Country-specific identifiers (transit/institution, IFSC, CLABE, BSB, etc.)
+        extraBankFields: extraBankFields || {},
+        correspondentBank: correspondentBank || '',
+        correspondentBankSWIFT: correspondentBankSWIFT || '',
       }
     });
 
@@ -320,6 +350,8 @@ export async function POST(request: NextRequest) {
           swiftCode,
           iban: iban || '',
           recipientCountry,
+          recipientCity: recipientCity || '',
+          recipientPostalCode: recipientPostalCode || '',
           recipientAddress,
           recipientBankAddress,
           targetCurrency: currency,
@@ -328,6 +360,11 @@ export async function POST(request: NextRequest) {
           transferFee,
           exchangeFee,
           estimatedDays,
+          // Country-specific identifiers — admin sees the full set so they can
+          // execute the payout via a third-party provider in any country.
+          ...(extraBankFields || {}),
+          correspondentBank: correspondentBank || '',
+          correspondentBankSWIFT: correspondentBankSWIFT || '',
           description: description?.trim() || '',
         },
       });
