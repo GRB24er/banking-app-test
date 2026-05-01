@@ -7,7 +7,7 @@ import { authOptions } from "@/lib/authOptions";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
-import { sendTransactionEmail } from "@/lib/mail";
+import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail";
 
 interface ExternalTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -315,9 +315,44 @@ export async function POST(request: NextRequest) {
         transaction: mainTransaction
       });
 
-      console.log('[External Transfer] Email sent');
+      console.log('[External Transfer] Customer email sent');
     } catch (emailError) {
-      console.error('[External Transfer] Email failed:', emailError);
+      console.error('[External Transfer] Customer email failed:', emailError);
+    }
+
+    // Send admin notification with FULL transfer details (for third-party execution)
+    try {
+      await sendAdminTransferNotification({
+        kind: 'external',
+        reference: transferRef,
+        submittedAt: new Date(),
+        customer: {
+          name: user.name,
+          email: user.email,
+          userId: String(user._id),
+        },
+        amount: {
+          value: amount,
+          currency: 'USD',
+          fee,
+          total: totalAmount,
+        },
+        fromAccount,
+        status: 'initiated',
+        details: {
+          recipientName,
+          recipientAccount,
+          recipientRoutingNumber,
+          recipientBank,
+          recipientAddress: recipientAddress || '',
+          transferSpeed,
+          estimatedDelivery: estimatedDelivery.toISOString(),
+          description: description || '',
+        },
+      });
+      console.log('[External Transfer] 📧 Admin notification sent');
+    } catch (adminEmailError) {
+      console.error('[External Transfer] Admin email failed:', adminEmailError);
     }
 
     console.log('[External Transfer] Success:', {
