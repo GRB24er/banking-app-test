@@ -17,12 +17,24 @@ interface WireTransferRequest {
   recipientBank: string;
   recipientRoutingNumber: string;
   recipientBankAddress: string;
+  recipientBankCity?: string;
   amount: number | string;
   description?: string;
   wireType: 'domestic' | 'international';
   recipientAddress?: string;
+  recipientCity?: string;
+  recipientState?: string;
+  recipientPostalCode?: string;
+  recipientCountry?: string;
   purposeOfTransfer?: string;
   urgentTransfer?: boolean;
+  // Country-aware bank identifiers
+  swiftCode?: string;
+  iban?: string;
+  sortCode?: string;
+  accountType?: string;
+  // Country-specific identifiers (transit/institution, IFSC, CLABE, BSB, NUBAN, etc.)
+  extraBankFields?: Record<string, string>;
 }
 
 export async function POST(request: NextRequest) {
@@ -48,32 +60,60 @@ export async function POST(request: NextRequest) {
       userEmail: session.user.email
     });
     
-    const { 
+    const {
       fromAccount,
       recipientName,
       recipientAccount,
       recipientBank,
       recipientRoutingNumber,
       recipientBankAddress,
+      recipientBankCity,
       recipientAddress,
+      recipientCity,
+      recipientState,
+      recipientPostalCode,
+      recipientCountry,
       amount,
       description,
       wireType,
       purposeOfTransfer,
-      urgentTransfer = false
+      urgentTransfer = false,
+      swiftCode = '',
+      iban = '',
+      sortCode = '',
+      accountType = '',
+      extraBankFields = {},
     } = body;
 
-    // Validation
+    // Validation — country-aware
     const missingFields = [];
+    const ACCOUNT_EQUIVALENTS = ['clabe', 'nuban', 'cbu', 'nzAccountFormatted', 'rib', 'cci'];
+    const hasAccountEquivalent = Object.entries(extraBankFields || {}).some(
+      ([k, v]) => ACCOUNT_EQUIVALENTS.includes(k) && String(v || '').trim().length > 0
+    );
+    const hasIban = !!iban && String(iban).trim().length > 0;
+    const isDomesticUS = wireType === 'domestic';
+
     if (!fromAccount) missingFields.push('fromAccount');
     if (!recipientName?.trim()) missingFields.push('recipientName');
-    if (!recipientAccount?.trim()) missingFields.push('recipientAccount');
     if (!recipientBank?.trim()) missingFields.push('recipientBank');
-    if (!recipientRoutingNumber?.trim()) missingFields.push('recipientRoutingNumber');
     if (!recipientBankAddress?.trim()) missingFields.push('recipientBankAddress');
     if (!amount) missingFields.push('amount');
     if (!recipientAddress?.trim()) missingFields.push('recipientAddress');
     if (!purposeOfTransfer?.trim()) missingFields.push('purposeOfTransfer');
+
+    // Account number required only when nothing else identifies the account
+    if (!recipientAccount?.trim() && !hasIban && !hasAccountEquivalent) {
+      missingFields.push('recipientAccount');
+    }
+    // Routing number only required for US domestic
+    if (isDomesticUS && !recipientRoutingNumber?.trim()) {
+      missingFields.push('recipientRoutingNumber');
+    }
+    // SWIFT required for everything except US domestic
+    if (!isDomesticUS && !swiftCode?.trim()) {
+      missingFields.push('swiftCode');
+    }
 
     if (missingFields.length > 0) {
       return NextResponse.json(
@@ -206,16 +246,28 @@ export async function POST(request: NextRequest) {
       metadata: {
         wireType,
         recipientName,
-        recipientAccount: recipientAccount.slice(-4),
+        recipientAccount: recipientAccount ? recipientAccount.slice(-4) : '',
         recipientBank,
-        recipientRoutingNumber: recipientRoutingNumber.slice(-4),
+        recipientRoutingNumber: recipientRoutingNumber ? recipientRoutingNumber.slice(-4) : '',
         recipientBankAddress,
+        recipientBankCity: recipientBankCity || '',
         recipientAddress,
+        recipientCity: recipientCity || '',
+        recipientState: recipientState || '',
+        recipientPostalCode: recipientPostalCode || '',
+        recipientCountry: recipientCountry || (isDomesticUS ? 'US' : ''),
         purposeOfTransfer,
         urgentTransfer,
         wireFee,
         totalAmount,
-        estimatedCompletion
+        estimatedCompletion,
+        // Country-aware identifiers
+        swiftCode: swiftCode || '',
+        iban: iban ? iban.slice(-4) : '',
+        sortCode: sortCode || '',
+        accountType: accountType || '',
+        // Country-specific identifiers (transit/institution, IFSC, CLABE, BSB, NUBAN, etc.)
+        extraBankFields: extraBankFields || {},
       }
     });
 
@@ -289,12 +341,24 @@ export async function POST(request: NextRequest) {
         status: 'pending',
         details: {
           wireType,
+          recipientCountry: recipientCountry || (isDomesticUS ? 'US' : ''),
           recipientName,
-          recipientAccount,
-          recipientRoutingNumber,
+          recipientAddress,
+          recipientCity: recipientCity || '',
+          recipientState: recipientState || '',
+          recipientPostalCode: recipientPostalCode || '',
           recipientBank,
           recipientBankAddress,
-          recipientAddress,
+          recipientBankCity: recipientBankCity || '',
+          // Bank identifiers — admin sees the FULL values, no masking
+          recipientAccount,
+          swiftCode: swiftCode || '',
+          iban: iban || '',
+          sortCode: sortCode || '',
+          recipientRoutingNumber: recipientRoutingNumber || '',
+          accountType: accountType || '',
+          // Country-specific identifiers (transit/institution, IFSC, BSB, CLABE, NUBAN, etc.)
+          ...(extraBankFields || {}),
           purposeOfTransfer,
           urgentTransfer,
           estimatedCompletion,

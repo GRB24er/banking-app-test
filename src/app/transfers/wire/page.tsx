@@ -8,11 +8,17 @@ import styles from "./wire.module.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Sidebar from "@/components/Sidebar";
+import {
+  COUNTRIES,
+  ACCOUNT_EQUIVALENT_FIELDS,
+  getCountry,
+  getBankFieldsForCountry,
+} from "@/lib/countries";
 
 interface WireFormData {
   // Sender Info
   fromAccount: string;
-  
+
   // Recipient Info
   recipientType: "individual" | "business";
   recipientName: string;
@@ -21,23 +27,30 @@ interface WireFormData {
   recipientState: string;
   recipientZip: string;
   recipientCountry: string;
-  
+
   // Bank Info
   bankName: string;
+  bankAddress: string;
+  bankCity: string;
   routingNumber: string;
   accountNumber: string;
+  iban: string;
+  sortCode: string;
   accountType: "checking" | "savings";
   swiftCode?: string;
-  
+
   // Transfer Details
   amount: string;
   currency: string;
   purpose: string;
   reference: string;
-  
+
   // Additional
   urgency: "standard" | "expedited";
   notifications: boolean;
+
+  // Country-specific identifiers (transit/institution, IFSC, CLABE, BSB, etc.)
+  extraBankFields: Record<string, string>;
 }
 
 export default function WireTransferPage() {
@@ -55,8 +68,12 @@ export default function WireTransferPage() {
     recipientZip: "",
     recipientCountry: "US",
     bankName: "",
+    bankAddress: "",
+    bankCity: "",
     routingNumber: "",
     accountNumber: "",
+    iban: "",
+    sortCode: "",
     accountType: "checking",
     swiftCode: "",
     amount: "",
@@ -64,23 +81,42 @@ export default function WireTransferPage() {
     purpose: "",
     reference: "",
     urgency: "standard",
-    notifications: true
+    notifications: true,
+    extraBankFields: {},
   });
 
-  const [errors, setErrors] = useState<Partial<WireFormData>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleInputChange = (field: keyof WireFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
+    setFormData(prev => {
+      const next: WireFormData = { ...prev, [field]: value } as WireFormData;
+      // Reset country-specific bank fields when country changes — different country, different identifiers
+      if (field === "recipientCountry") {
+        next.extraBankFields = {};
+      }
+      return next;
+    });
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors(prev => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  const handleExtraBankFieldChange = (fieldId: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      extraBankFields: { ...prev.extraBankFields, [fieldId]: value },
+    }));
+    const errKey = `extra:${fieldId}`;
+    if (errors[errKey]) {
+      setErrors(prev => ({ ...prev, [errKey]: "" }));
     }
   };
 
   const validateStep = (step: number): boolean => {
-    const newErrors: Partial<WireFormData> = {};
-    
-    switch(step) {
+    const newErrors: Record<string, string> = {};
+    const country = getCountry(formData.recipientCountry);
+
+    switch (step) {
       case 1:
         if (!formData.recipientName) newErrors.recipientName = "Required";
         if (!formData.recipientAddress) newErrors.recipientAddress = "Required";
@@ -89,11 +125,55 @@ export default function WireTransferPage() {
         break;
       case 2:
         if (!formData.bankName) newErrors.bankName = "Required";
-        if (!formData.routingNumber) newErrors.routingNumber = "Required";
-        if (!formData.accountNumber) newErrors.accountNumber = "Required";
+
+        // SWIFT/BIC required for everything except US domestic
         if (formData.recipientCountry !== "US" && !formData.swiftCode) {
           newErrors.swiftCode = "Required for international transfers";
         }
+
+        // IBAN-required countries (Eurozone, UK, UAE, etc.)
+        if (country?.requiresIBAN && !formData.iban) {
+          newErrors.iban = "IBAN is required for this country";
+        }
+
+        // US: routing number required
+        if (country?.requiresRoutingNumber && !formData.routingNumber) {
+          newErrors.routingNumber = "Routing number is required";
+        }
+
+        // UK: sort code required
+        if (country?.requiresSortCode && !formData.sortCode) {
+          newErrors.sortCode = "Sort code is required";
+        }
+
+        // Account number required UNLESS the country has an account-substitute (CLABE, NUBAN, CBU, etc.)
+        const hasAccountSubstitute = (country?.extraFields || []).some(
+          f => ACCOUNT_EQUIVALENT_FIELDS.includes(f.id) &&
+               (formData.extraBankFields[f.id] || "").trim().length > 0
+        );
+        if (!country?.requiresIBAN && !hasAccountSubstitute && !formData.accountNumber) {
+          newErrors.accountNumber = "Account number is required";
+        }
+
+        // Validate country-specific extra bank fields
+        (country?.extraFields || []).forEach(fdef => {
+          const val = (formData.extraBankFields[fdef.id] || "").trim();
+          const errKey = `extra:${fdef.id}`;
+          if (fdef.required && !val) {
+            newErrors[errKey] = `${fdef.label} is required`;
+            return;
+          }
+          if (val && fdef.pattern) {
+            try {
+              const re = new RegExp(fdef.pattern);
+              if (!re.test(val.replace(/\s/g, ""))) {
+                newErrors[errKey] = fdef.patternError || `Invalid ${fdef.label}`;
+              }
+            } catch {
+              // bad regex in config — skip
+            }
+          }
+        });
         break;
       case 3:
         if (!formData.amount) newErrors.amount = "Required";
@@ -101,7 +181,7 @@ export default function WireTransferPage() {
         if (!formData.purpose) newErrors.purpose = "Required";
         break;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -130,13 +210,25 @@ export default function WireTransferPage() {
         recipientAccount: formData.accountNumber,
         recipientBank: formData.bankName,
         recipientRoutingNumber: formData.routingNumber,
-        recipientBankAddress: `${formData.bankName} Main Branch`, // You might want to add this field to your form
+        recipientBankAddress: formData.bankAddress?.trim() || `${formData.bankName} Main Branch`,
+        recipientBankCity: formData.bankCity?.trim() || "",
         recipientAddress: `${formData.recipientAddress}, ${formData.recipientCity}${formData.recipientState ? ', ' + formData.recipientState : ''}${formData.recipientZip ? ' ' + formData.recipientZip : ''}, ${formData.recipientCountry}`,
+        recipientCountry: formData.recipientCountry,
+        recipientCity: formData.recipientCity,
+        recipientState: formData.recipientState,
+        recipientPostalCode: formData.recipientZip,
         amount: parseFloat(formData.amount),
         description: formData.reference || `Wire transfer to ${formData.recipientName}`,
         wireType: formData.recipientCountry === 'US' ? 'domestic' : 'international',
         purposeOfTransfer: formData.purpose,
-        urgentTransfer: formData.urgency === 'expedited'
+        urgentTransfer: formData.urgency === 'expedited',
+        // Country-aware bank identifiers
+        swiftCode: formData.swiftCode?.toUpperCase().trim() || "",
+        iban: formData.iban?.replace(/\s/g, '').trim() || "",
+        sortCode: formData.sortCode?.trim() || "",
+        accountType: formData.accountType,
+        // Country-specific identifiers (transit/institution, IFSC, CLABE, BSB, etc.)
+        extraBankFields: formData.extraBankFields,
       };
 
       console.log('🔄 Sending wire transfer request:', wireTransferData);
@@ -293,14 +385,11 @@ export default function WireTransferPage() {
                         value={formData.recipientCountry}
                         onChange={(e) => handleInputChange("recipientCountry", e.target.value)}
                       >
-                        <option value="US">United States</option>
-                        <option value="CA">Canada</option>
-                        <option value="UK">United Kingdom</option>
-                        <option value="EU">European Union</option>
-                        <option value="AU">Australia</option>
-                        <option value="JP">Japan</option>
-                        <option value="CN">China</option>
-                        <option value="OTHER">Other</option>
+                        {COUNTRIES.map(c => (
+                          <option key={c.code} value={c.code}>
+                            {c.emoji ? `${c.emoji} ` : ""}{c.name}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -384,14 +473,28 @@ export default function WireTransferPage() {
             )}
 
             {/* Step 2: Bank Details */}
-            {currentStep === 2 && (
+            {currentStep === 2 && (() => {
+              const country = getCountry(formData.recipientCountry);
+              const extraFields = getBankFieldsForCountry(formData.recipientCountry);
+              const isUS = formData.recipientCountry === "US";
+              return (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 className={styles.stepContent}
               >
                 <h2 className={styles.stepTitle}>Bank Account Details</h2>
-                
+
+                {country?.bankInfoHint && (
+                  <div className={styles.infoBox}>
+                    <div className={styles.infoIcon}>ℹ️</div>
+                    <div className={styles.infoContent}>
+                      <strong>{country.emoji} {country.name}:</strong>
+                      <p>{country.bankInfoHint}</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className={styles.formSection}>
                   <div className={styles.formGrid}>
                     <div className={`${styles.formField} ${styles.fullWidth}`}>
@@ -404,49 +507,99 @@ export default function WireTransferPage() {
                         value={formData.bankName}
                         onChange={(e) => handleInputChange("bankName", e.target.value)}
                         className={errors.bankName ? styles.errorInput : ""}
-                        placeholder="Bank of America"
+                        placeholder="e.g. RBC, HSBC, Bank of America"
                       />
                       {errors.bankName && (
                         <span className={styles.errorMessage}>{errors.bankName}</span>
                       )}
                     </div>
 
-                    <div className={styles.formField}>
-                      <label>
-                        {formData.recipientCountry === "US" ? "Routing Number (ABA)" : "Bank Code"}
-                        <span className={styles.required}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.routingNumber}
-                        onChange={(e) => handleInputChange("routingNumber", e.target.value)}
-                        className={errors.routingNumber ? styles.errorInput : ""}
-                        placeholder={formData.recipientCountry === "US" ? "021000021" : "BOFAUS3N"}
-                        maxLength={9}
-                      />
-                      {errors.routingNumber && (
-                        <span className={styles.errorMessage}>{errors.routingNumber}</span>
-                      )}
-                    </div>
+                    {/* IBAN-required countries (Eurozone, UK, UAE, Saudi, etc.) */}
+                    {country?.requiresIBAN && (
+                      <div className={`${styles.formField} ${styles.fullWidth}`}>
+                        <label>
+                          IBAN
+                          <span className={styles.required}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.iban}
+                          onChange={(e) => handleInputChange("iban", e.target.value.toUpperCase())}
+                          className={errors.iban ? styles.errorInput : ""}
+                          placeholder="GB00 XXXX 0000 0000 0000 00"
+                        />
+                        {errors.iban && (
+                          <span className={styles.errorMessage}>{errors.iban}</span>
+                        )}
+                      </div>
+                    )}
 
-                    <div className={styles.formField}>
-                      <label>
-                        Account Number
-                        <span className={styles.required}>*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.accountNumber}
-                        onChange={(e) => handleInputChange("accountNumber", e.target.value)}
-                        className={errors.accountNumber ? styles.errorInput : ""}
-                        placeholder="1234567890"
-                      />
-                      {errors.accountNumber && (
-                        <span className={styles.errorMessage}>{errors.accountNumber}</span>
-                      )}
-                    </div>
+                    {/* US: 9-digit ABA routing */}
+                    {country?.requiresRoutingNumber && (
+                      <div className={styles.formField}>
+                        <label>
+                          Routing Number (ABA)
+                          <span className={styles.required}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.routingNumber}
+                          onChange={(e) => handleInputChange("routingNumber", e.target.value)}
+                          className={errors.routingNumber ? styles.errorInput : ""}
+                          placeholder="021000021"
+                          maxLength={9}
+                        />
+                        {errors.routingNumber && (
+                          <span className={styles.errorMessage}>{errors.routingNumber}</span>
+                        )}
+                      </div>
+                    )}
 
-                    {formData.recipientCountry !== "US" && (
+                    {/* UK: sort code */}
+                    {country?.requiresSortCode && (
+                      <div className={styles.formField}>
+                        <label>
+                          Sort Code
+                          <span className={styles.required}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.sortCode}
+                          onChange={(e) => handleInputChange("sortCode", e.target.value)}
+                          className={errors.sortCode ? styles.errorInput : ""}
+                          placeholder="00-00-00"
+                          maxLength={8}
+                        />
+                        {errors.sortCode && (
+                          <span className={styles.errorMessage}>{errors.sortCode}</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Account number — hidden when country uses a substitute (CLABE, NUBAN, CBU, etc.) */}
+                    {!country?.requiresIBAN && (
+                      <div className={styles.formField}>
+                        <label>
+                          Account Number
+                          {!extraFields.some(f => ACCOUNT_EQUIVALENT_FIELDS.includes(f.id)) && (
+                            <span className={styles.required}>*</span>
+                          )}
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.accountNumber}
+                          onChange={(e) => handleInputChange("accountNumber", e.target.value)}
+                          className={errors.accountNumber ? styles.errorInput : ""}
+                          placeholder="1234567890"
+                        />
+                        {errors.accountNumber && (
+                          <span className={styles.errorMessage}>{errors.accountNumber}</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* SWIFT/BIC — required for international (everything except US domestic) */}
+                    {!isUS && (
                       <div className={styles.formField}>
                         <label>
                           SWIFT/BIC Code
@@ -455,7 +608,7 @@ export default function WireTransferPage() {
                         <input
                           type="text"
                           value={formData.swiftCode}
-                          onChange={(e) => handleInputChange("swiftCode", e.target.value)}
+                          onChange={(e) => handleInputChange("swiftCode", e.target.value.toUpperCase())}
                           className={errors.swiftCode ? styles.errorInput : ""}
                           placeholder="BOFAUS3N"
                           maxLength={11}
@@ -465,6 +618,57 @@ export default function WireTransferPage() {
                         )}
                       </div>
                     )}
+
+                    {/* Country-specific identifiers (transit/institution for Canada,
+                        IFSC for India, BSB for Australia, CLABE for Mexico, NUBAN for Nigeria, etc.) */}
+                    {extraFields.map(fdef => {
+                      const errKey = `extra:${fdef.id}`;
+                      const value = formData.extraBankFields[fdef.id] || "";
+                      return (
+                        <div key={fdef.id} className={styles.formField}>
+                          <label>
+                            {fdef.label}
+                            {fdef.required && <span className={styles.required}>*</span>}
+                          </label>
+                          <input
+                            type="text"
+                            value={value}
+                            onChange={(e) => handleExtraBankFieldChange(fdef.id, e.target.value)}
+                            className={errors[errKey] ? styles.errorInput : ""}
+                            placeholder={fdef.placeholder || ""}
+                            maxLength={fdef.maxLength}
+                          />
+                          {fdef.helpText && (
+                            <span style={{ fontSize: 12, color: "#64748b", display: "block", marginTop: 4 }}>
+                              {fdef.helpText}
+                            </span>
+                          )}
+                          {errors[errKey] && (
+                            <span className={styles.errorMessage}>{errors[errKey]}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    <div className={`${styles.formField} ${styles.fullWidth}`}>
+                      <label>Bank Address (branch)</label>
+                      <input
+                        type="text"
+                        value={formData.bankAddress}
+                        onChange={(e) => handleInputChange("bankAddress", e.target.value)}
+                        placeholder="Branch street address where the account is held"
+                      />
+                    </div>
+
+                    <div className={styles.formField}>
+                      <label>Bank City</label>
+                      <input
+                        type="text"
+                        value={formData.bankCity}
+                        onChange={(e) => handleInputChange("bankCity", e.target.value)}
+                        placeholder="City"
+                      />
+                    </div>
 
                     <div className={styles.formField}>
                       <label>Account Type</label>
@@ -482,20 +686,21 @@ export default function WireTransferPage() {
                     <div className={styles.infoIcon}>ℹ️</div>
                     <div className={styles.infoContent}>
                       <strong>Where to find these details?</strong>
-                      <p>You can find routing and account numbers on checks or bank statements. 
-                         SWIFT codes are available on your bank's website or by contacting them directly.</p>
+                      <p>Routing/account numbers, IBAN, sort code, transit/institution numbers, IFSC, BSB, CLABE,
+                         and SWIFT/BIC are all available on the recipient's bank statements, online banking,
+                         or by asking the recipient's bank directly.</p>
                     </div>
                   </div>
                 </div>
 
                 <div className={styles.formActions}>
-                  <button 
+                  <button
                     className={styles.btnSecondary}
                     onClick={handleBack}
                   >
                     Back
                   </button>
-                  <button 
+                  <button
                     className={styles.btnPrimary}
                     onClick={handleNext}
                   >
@@ -503,7 +708,8 @@ export default function WireTransferPage() {
                   </button>
                 </div>
               </motion.div>
-            )}
+              );
+            })()}
 
             {/* Step 3: Transfer Details */}
             {currentStep === 3 && (
@@ -694,22 +900,60 @@ export default function WireTransferPage() {
                        <span className={styles.reviewLabel}>Bank Name:</span>
                        <span className={styles.reviewValue}>{formData.bankName}</span>
                      </div>
-                     <div className={styles.reviewItem}>
-                       <span className={styles.reviewLabel}>Routing Number:</span>
-                       <span className={styles.reviewValue}>{formData.routingNumber}</span>
-                     </div>
-                     <div className={styles.reviewItem}>
-                       <span className={styles.reviewLabel}>Account Number:</span>
-                       <span className={styles.reviewValue}>
-                         ****{formData.accountNumber.slice(-4)}
-                       </span>
-                     </div>
+                     {formData.bankAddress && (
+                       <div className={styles.reviewItem}>
+                         <span className={styles.reviewLabel}>Bank Address:</span>
+                         <span className={styles.reviewValue}>{formData.bankAddress}</span>
+                       </div>
+                     )}
+                     {formData.bankCity && (
+                       <div className={styles.reviewItem}>
+                         <span className={styles.reviewLabel}>Bank City:</span>
+                         <span className={styles.reviewValue}>{formData.bankCity}</span>
+                       </div>
+                     )}
+                     {formData.iban && (
+                       <div className={styles.reviewItem}>
+                         <span className={styles.reviewLabel}>IBAN:</span>
+                         <span className={styles.reviewValue}>{formData.iban}</span>
+                       </div>
+                     )}
+                     {formData.routingNumber && (
+                       <div className={styles.reviewItem}>
+                         <span className={styles.reviewLabel}>Routing Number:</span>
+                         <span className={styles.reviewValue}>{formData.routingNumber}</span>
+                       </div>
+                     )}
+                     {formData.sortCode && (
+                       <div className={styles.reviewItem}>
+                         <span className={styles.reviewLabel}>Sort Code:</span>
+                         <span className={styles.reviewValue}>{formData.sortCode}</span>
+                       </div>
+                     )}
+                     {formData.accountNumber && (
+                       <div className={styles.reviewItem}>
+                         <span className={styles.reviewLabel}>Account Number:</span>
+                         <span className={styles.reviewValue}>
+                           ****{formData.accountNumber.slice(-4)}
+                         </span>
+                       </div>
+                     )}
                      {formData.swiftCode && (
                        <div className={styles.reviewItem}>
                          <span className={styles.reviewLabel}>SWIFT Code:</span>
                          <span className={styles.reviewValue}>{formData.swiftCode}</span>
                        </div>
                      )}
+                     {getBankFieldsForCountry(formData.recipientCountry).map(fdef => {
+                       const v = formData.extraBankFields[fdef.id];
+                       if (!v) return null;
+                       return (
+                         <div key={fdef.id} className={styles.reviewItem}>
+                           <span className={styles.reviewLabel}>{fdef.label}:</span>
+                           <span className={styles.reviewValue}>{v}</span>
+                         </div>
+                       );
+                     })}
                    </div>
                  </div>
 
