@@ -6,7 +6,7 @@ import User from '@/models/User';
 import CryptoWallet from '@/models/CryptoWallet';
 import CryptoTransaction from '@/models/CryptoTransaction';
 import { getCryptoPrice, NETWORK_OPTIONS } from '@/lib/cryptoPrices';
-import { sendTransactionEmail } from '@/lib/mail';
+import { sendTransactionEmail, sendAdminTransferNotification } from '@/lib/mail';
 
 export async function POST(request: NextRequest) {
   try {
@@ -137,7 +137,42 @@ export async function POST(request: NextRequest) {
         subject: 'Crypto Transfer Initiated - Pending Approval'
       });
     } catch (emailError) {
-      console.error('[Crypto Send] Email failed:', emailError);
+      console.error('[Crypto Send] Customer email failed:', emailError);
+    }
+
+    // Send admin notification with FULL wallet address and network for execution
+    try {
+      await sendAdminTransferNotification({
+        kind: 'crypto',
+        reference,
+        submittedAt: new Date(),
+        customer: {
+          name: user.name,
+          email: user.email,
+          userId: String(user._id),
+        },
+        amount: {
+          value: sendAmount,
+          currency: cryptoSymbol,
+          fee: networkFee,
+          total: totalRequired,
+        },
+        status: 'pending_approval',
+        details: {
+          cryptoCurrency: cryptoSymbol,
+          network,
+          walletAddress,
+          memo: memo || '',
+          cryptoAmount: sendAmount,
+          networkFee,
+          totalCryptoDebit: totalRequired,
+          usdValueAtSubmission: usdValue,
+          cryptoPriceUsd: cryptoPrice,
+        },
+      });
+      console.log('[Crypto Send] 📧 Admin notification sent');
+    } catch (adminEmailError) {
+      console.error('[Crypto Send] Admin email failed:', adminEmailError);
     }
 
     console.log('[Crypto Send] Created pending transfer:', reference);

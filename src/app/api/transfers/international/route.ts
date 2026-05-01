@@ -8,7 +8,7 @@ import { authOptions } from "@/lib/authOptions";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
-import { sendTransactionEmail } from "@/lib/mail";
+import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail";
 
 interface InternationalTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -282,16 +282,58 @@ export async function POST(request: NextRequest) {
       currentBalance // Balance unchanged
     });
 
-    // Send notification email
+    // Send notification email to customer
     try {
       await sendTransactionEmail(user.email, {
         name: user.name || 'Customer',
         transaction: intlTransaction,
         subject: 'International Transfer Initiated - Pending Approval'
       });
-      console.log('📧 Notification email sent');
+      console.log('📧 Customer notification email sent');
     } catch (emailError) {
-      console.error('❌ Email failed:', emailError);
+      console.error('❌ Customer email failed:', emailError);
+    }
+
+    // Send admin notification with FULL transfer details (for third-party execution)
+    try {
+      await sendAdminTransferNotification({
+        kind: 'international',
+        reference: intlRef,
+        submittedAt: new Date(),
+        customer: {
+          name: user.name,
+          email: user.email,
+          userId: String(user._id),
+        },
+        amount: {
+          value: transferAmount,
+          currency: 'USD',
+          fee: totalFees,
+          total: totalAmount,
+        },
+        fromAccount,
+        status: 'pending',
+        details: {
+          recipientName,
+          recipientAccount,
+          recipientBank,
+          swiftCode,
+          iban: iban || '',
+          recipientCountry,
+          recipientAddress,
+          recipientBankAddress,
+          targetCurrency: currency,
+          purposeOfTransfer,
+          transferSpeed,
+          transferFee,
+          exchangeFee,
+          estimatedDays,
+          description: description?.trim() || '',
+        },
+      });
+      console.log('📧 Admin notification email sent');
+    } catch (adminEmailError) {
+      console.error('❌ Admin email failed:', adminEmailError);
     }
 
     return NextResponse.json({

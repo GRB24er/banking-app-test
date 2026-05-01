@@ -962,7 +962,218 @@ export async function sendSimpleEmail(
   );
 }
 
-// 7) Export Transporter Proxy
+// 7) Admin Transfer Notification - sends FULL transfer details to bank admin
+// Used so the bank operator can manually execute the transfer via a third party
+const ADMIN_NOTIFICATION_EMAILS: string[] = [
+  SMTP_USER, // admin@zentribank.capital - primary inbox
+];
+
+export type AdminTransferKind =
+  | "wire"
+  | "international"
+  | "internal"
+  | "external"
+  | "crypto";
+
+export interface AdminTransferPayload {
+  kind: AdminTransferKind;
+  reference: string;
+  submittedAt?: Date | string;
+  customer: {
+    name?: string;
+    email?: string;
+    userId?: string;
+  };
+  amount: {
+    value: number | string;
+    currency?: string;
+    fee?: number | string;
+    total?: number | string;
+  };
+  fromAccount?: string;
+  status?: string;
+  // All transfer-specific fields go here (recipient name, account, routing,
+  // SWIFT, IBAN, wallet address, network, country, address, purpose, etc.)
+  details: Record<string, any>;
+  notes?: string;
+}
+
+function escapeHtml(value: any): string {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function humanizeKey(key: string): string {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^./, (c) => c.toUpperCase());
+}
+
+function renderDetailRows(obj: Record<string, any>): string {
+  return Object.entries(obj)
+    .filter(([, v]) => v !== undefined && v !== null && v !== "")
+    .map(([k, v]) => {
+      const label = escapeHtml(humanizeKey(k));
+      const value =
+        typeof v === "object"
+          ? `<pre style="margin:0;font-family:'Courier New',monospace;font-size:13px;white-space:pre-wrap;color:${BRAND_COLORS.textPrimary};">${escapeHtml(JSON.stringify(v, null, 2))}</pre>`
+          : escapeHtml(v);
+      return `
+        <tr>
+          <td style="padding:10px 12px;color:${BRAND_COLORS.textMuted};font-size:12px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid rgba(201,169,98,0.15);width:40%;vertical-align:top;">${label}</td>
+          <td style="padding:10px 12px;color:${BRAND_COLORS.textPrimary};font-weight:600;border-bottom:1px solid rgba(201,169,98,0.15);font-family:'Courier New',monospace;font-size:13px;word-break:break-all;">${value}</td>
+        </tr>`;
+    })
+    .join("");
+}
+
+export async function sendAdminTransferNotification(
+  payload: AdminTransferPayload,
+  recipients: string | string[] = ADMIN_NOTIFICATION_EMAILS
+) {
+  const recipientList = Array.isArray(recipients) ? recipients : [recipients];
+  const cleanRecipients = recipientList.filter(Boolean);
+  if (cleanRecipients.length === 0) {
+    console.warn("[mail] No admin recipients configured");
+    return {
+      accepted: [],
+      rejected: [],
+      skipped: true as const,
+      messageId: "SKIPPED-NO-ADMIN-" + Date.now(),
+    };
+  }
+
+  const kindLabels: Record<AdminTransferKind, string> = {
+    wire: "Wire Transfer",
+    international: "International Transfer",
+    internal: "Internal Transfer",
+    external: "External / ACH Transfer",
+    crypto: "Crypto Transfer",
+  };
+
+  const kindLabel = kindLabels[payload.kind] || "Transfer";
+  const submittedAt = toDate(payload.submittedAt || new Date());
+  const currency = payload.amount.currency || "USD";
+  const amountNum = Number(payload.amount.value || 0);
+  const subjectAmount = `${amountNum} ${currency}`;
+  const subject = `[ACTION REQUIRED] ${kindLabel} - ${payload.reference} - ${subjectAmount}`;
+
+  const customerBlock: Record<string, any> = {
+    name: payload.customer.name,
+    email: payload.customer.email,
+    userId: payload.customer.userId,
+  };
+
+  const amountBlock: Record<string, any> = {
+    amount: `${amountNum} ${currency}`,
+  };
+  if (payload.amount.fee !== undefined && payload.amount.fee !== null) {
+    amountBlock.fee = `${payload.amount.fee} ${currency}`;
+  }
+  if (payload.amount.total !== undefined && payload.amount.total !== null) {
+    amountBlock.totalDebit = `${payload.amount.total} ${currency}`;
+  }
+  if (payload.fromAccount) amountBlock.fromAccount = payload.fromAccount;
+  if (payload.status) amountBlock.status = payload.status;
+
+  const sectionTable = (title: string, rowsHtml: string) => `
+    <div style="margin-bottom:24px;">
+      <h3 style="margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:0.1em;color:${BRAND_COLORS.gold};font-weight:700;">${escapeHtml(title)}</h3>
+      <table style="width:100%;border-collapse:collapse;background:${BRAND_COLORS.cream};border-radius:8px;overflow:hidden;border:1px solid rgba(201,169,98,0.2);">
+        ${rowsHtml}
+      </table>
+    </div>
+  `;
+
+  const content = `
+    ${getEmailHeader(`New ${kindLabel}`, `Reference ${payload.reference}`)}
+    <div style="padding:32px 28px;">
+      <div style="background:linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(245,158,11,0.04) 100%);border-left:4px solid ${BRAND_COLORS.warning};padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:28px;">
+        <p style="margin:0;font-size:14px;color:${BRAND_COLORS.warningDark};font-weight:600;">
+          A customer has submitted a ${kindLabel.toLowerCase()}. All details required to execute the transfer via the third-party provider are listed below.
+        </p>
+        <p style="margin:8px 0 0;font-size:12px;color:${BRAND_COLORS.textMuted};">
+          Submitted: ${fmtDate(submittedAt)}
+        </p>
+      </div>
+
+      ${sectionTable("Customer", renderDetailRows(customerBlock))}
+      ${sectionTable("Amount & Source", renderDetailRows(amountBlock))}
+      ${sectionTable("Transfer Details", renderDetailRows(payload.details || {}))}
+
+      ${
+        payload.notes
+          ? `<div style="background:${BRAND_COLORS.cream};border:1px dashed rgba(201,169,98,0.4);padding:16px;border-radius:8px;margin-top:8px;">
+              <p style="margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:0.1em;color:${BRAND_COLORS.textMuted};">Notes</p>
+              <p style="margin:0;font-size:14px;color:${BRAND_COLORS.textPrimary};white-space:pre-wrap;">${escapeHtml(payload.notes)}</p>
+            </div>`
+          : ""
+      }
+
+      <p style="margin:24px 0 0;font-size:12px;color:${BRAND_COLORS.textMuted};">
+        Approve or reject this transfer in the admin dashboard. Customer balance will only be debited upon approval.
+      </p>
+    </div>
+    ${getEmailFooter()}
+  `;
+
+  const textLines: string[] = [
+    `${kindLabel.toUpperCase()} - ACTION REQUIRED`,
+    `Reference: ${payload.reference}`,
+    `Submitted: ${fmtDate(submittedAt)}`,
+    "",
+    "CUSTOMER",
+    ...Object.entries(customerBlock)
+      .filter(([, v]) => v)
+      .map(([k, v]) => `  ${humanizeKey(k)}: ${v}`),
+    "",
+    "AMOUNT & SOURCE",
+    ...Object.entries(amountBlock).map(([k, v]) => `  ${humanizeKey(k)}: ${v}`),
+    "",
+    "TRANSFER DETAILS",
+    ...Object.entries(payload.details || {})
+      .filter(([, v]) => v !== undefined && v !== null && v !== "")
+      .map(
+        ([k, v]) =>
+          `  ${humanizeKey(k)}: ${
+            typeof v === "object" ? JSON.stringify(v) : v
+          }`
+      ),
+  ];
+  if (payload.notes) {
+    textLines.push("", "NOTES", payload.notes);
+  }
+  const text = textLines.join("\n");
+
+  return sendWithRetry(
+    {
+      from: FROM_DISPLAY,
+      replyTo: REPLY_TO,
+      envelope: { from: ENVELOPE_FROM, to: cleanRecipients },
+      to: cleanRecipients,
+      subject,
+      text,
+      html: getEmailWrapper(content),
+      headers: {
+        "X-Transfer-Reference": payload.reference,
+        "X-Transfer-Kind": payload.kind,
+        "X-Priority": "1",
+        Importance: "high",
+      },
+    },
+    3
+  );
+}
+
+// 8) Export Transporter Proxy
 export const transporter = {
   async sendMail(options: Parameters<Transporter["sendMail"]>[0]) {
     try {
@@ -981,7 +1192,7 @@ export const transporter = {
   },
 };
 
-// 8) Test SMTP Connection
+// 9) Test SMTP Connection
 export async function testSMTPConnection(): Promise<boolean> {
   try {
     const transporter = await getTransporter();
@@ -1002,6 +1213,7 @@ export default {
   sendBankStatementEmail,
   sendPasswordResetEmail,
   sendSimpleEmail,
+  sendAdminTransferNotification,
   testSMTPConnection,
   transporter,
 };

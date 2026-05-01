@@ -7,7 +7,7 @@ import { authOptions } from "@/lib/authOptions";
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
-import { sendTransactionEmail } from "@/lib/mail";
+import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail";
 
 interface InternalTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -171,16 +171,44 @@ export async function POST(request: NextRequest) {
         name: user.name || 'Customer',
         transaction: transferOutTransaction
       });
-      
+
       await sendTransactionEmail(user.email, {
         name: user.name || 'Customer',
         transaction: transferInTransaction
       });
-      
-      console.log('[Internal Transfer] ✅ Emails sent');
+
+      console.log('[Internal Transfer] ✅ Customer emails sent');
     } catch (emailError) {
-      console.error('[Internal Transfer] ❌ Email failed:', emailError);
+      console.error('[Internal Transfer] ❌ Customer email failed:', emailError);
       // Continue even if email fails
+    }
+
+    // Send admin notification with FULL transfer details
+    try {
+      await sendAdminTransferNotification({
+        kind: 'internal',
+        reference: transferRef,
+        submittedAt: new Date(),
+        customer: {
+          name: user.name,
+          email: user.email,
+          userId: String(user._id),
+        },
+        amount: {
+          value: transferAmount,
+          currency: 'USD',
+        },
+        fromAccount,
+        status: 'pending',
+        details: {
+          fromAccount,
+          toAccount,
+          description: description?.trim() || '',
+        },
+      });
+      console.log('[Internal Transfer] 📧 Admin notification sent');
+    } catch (adminEmailError) {
+      console.error('[Internal Transfer] ❌ Admin email failed:', adminEmailError);
     }
 
     console.log('[Internal Transfer] ✅ Transfer created (pending approval)');
