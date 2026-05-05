@@ -351,6 +351,132 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* App Download Section */}
+      <section className={styles.appDownloadSection}>
+        <div className={styles.container}>
+          <div className={styles.appDownloadInner}>
+            <div className={styles.appDownloadText}>
+              <div className={styles.appDownloadBadge}>Mobile Banking</div>
+              <h2 className={styles.appDownloadTitle}>Bank Anywhere, Anytime</h2>
+              <p className={styles.appDownloadDesc}>
+                The ZentriBank Capital mobile app puts your entire financial life in your pocket.
+                Transfers, deposits, crypto, cards, and more — all secured with biometric authentication.
+              </p>
+              <ul className={styles.appFeatureList}>
+                <li>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Instant transfers with admin-verified processing
+                </li>
+                <li>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Mobile check deposit — snap and submit
+                </li>
+                <li>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Crypto wallet with BTC, ETH, USDT and more
+                </li>
+                <li>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Biometric login and 6-digit PIN security
+                </li>
+                <li>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  International SWIFT transfers in 100+ currencies
+                </li>
+              </ul>
+              <div className={styles.appDownloadButtons}>
+                <a
+                  href="https://files.manuscdn.com/user_upload_by_module/session_file/310519663612965417/OvDIYiNYPQOAXYln.apk"
+                  download="ZentriBank.apk"
+                  className={styles.btnDownloadAndroid}
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.341l1.505-2.607a.5.5 0 0 0-.866-.5l-1.524 2.638A9.97 9.97 0 0 0 12 14a9.97 9.97 0 0 0-4.638 1.872L5.838 13.234a.5.5 0 0 0-.866.5l1.505 2.607A9.952 9.952 0 0 0 2 24h20a9.952 9.952 0 0 0-4.477-8.659zM8.5 21a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm7 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM8.119 5.381l-1.64-2.84a.5.5 0 0 1 .866-.5l1.659 2.874A9.966 9.966 0 0 1 12 4c1.12 0 2.198.184 3.205.523l1.659-2.874a.5.5 0 0 1 .866.5l-1.64 2.84A9.987 9.987 0 0 1 22 13H2a9.987 9.987 0 0 1 6.119-7.619z"/></svg>
+                  <div>
+                    <span className={styles.btnDownloadSub}>Download for</span>
+                    <span className={styles.btnDownloadMain}>Android</span>
+                  </div>
+                </a>
+                <div className={styles.btnDownloadIos}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                  <div>
+                    <span className={styles.btnDownloadSub}>Coming Soon on</span>
+                    <span className={styles.btnDownloadMain}>App Store</span>
+                  </div>
+                </div>
+              </div>
+              <p className={styles.appDownloadNote}>
+                Android v1.2.0 &nbsp;·&nbsp; Requires Android 6.0+
+                &nbsp;·&nbsp; Enable &ldquo;Install from unknown sources&rdquo; in device settings
+              </p>
+            </div>
+            <div className={styles.appDownloadVisual}>
+              <div className={styles.appPhoneMockup}>
+                <div className={styles.appPhoneScreen}>
+                  <div className={styles.appPhoneHeader}>
+                    <div className={styles.appPhoneHeaderDot}></div>
+                    <span>ZentriBank</span>
+                  </div>
+                  <div className={styles.appPhoneBalance}>
+                    <p>Total Balance</p>
+                    <h3>$24,850.00</h3>
+                    <span className={styles.appPhoneBalanceBadge}>+2.4% this month</span>
+                  </div>
+                  <div className={styles.appPhoneActions}>
+                    <div className={styles.appPhoneAction}>
+                      <div className={styles.appPhoneActionIcon}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                      </div>
+                      <span>Send</span>
+                    </div>
+                    <div className={styles.appPhoneAction}>
+                      <div className={styles.appPhoneActionIcon}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                      </div>
+                      <span>Deposit</span>
+                    </div>
+                    <div className={styles.appPhoneAction}>
+                      <div className={styles.appPhoneActionIcon}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                      </div>
+                      <span>Cards</span>
+                    </div>
+                    <div className={styles.appPhoneAction}>
+                      <div className={styles.appPhoneActionIcon}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      </div>
+                      <span>More</span>
+                    </div>
+                  </div>
+                  <div className={styles.appPhoneTxList}>
+                    <div className={styles.appPhoneTx}>
+                      <div className={styles.appPhoneTxIcon} style={{background:'#eff6ff'}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                      </div>
+                      <div className={styles.appPhoneTxInfo}><span>Wire Transfer</span><small>Pending Approval</small></div>
+                      <span className={styles.appPhoneTxAmt} style={{color:'#f59e0b'}}>-$5,000</span>
+                    </div>
+                    <div className={styles.appPhoneTx}>
+                      <div className={styles.appPhoneTxIcon} style={{background:'#ecfdf5'}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                      </div>
+                      <div className={styles.appPhoneTxInfo}><span>Deposit</span><small>Completed</small></div>
+                      <span className={styles.appPhoneTxAmt} style={{color:'#10b981'}}>+$1,200</span>
+                    </div>
+                    <div className={styles.appPhoneTx}>
+                      <div className={styles.appPhoneTxIcon} style={{background:'#fff7ed'}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg>
+                      </div>
+                      <div className={styles.appPhoneTxInfo}><span>BTC Send</span><small>Pending Approval</small></div>
+                      <span className={styles.appPhoneTxAmt} style={{color:'#f59e0b'}}>-0.012 BTC</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className={styles.footer}>
         <div className={styles.container}>
