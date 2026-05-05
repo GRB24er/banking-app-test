@@ -41,7 +41,7 @@ const BRAND_COLORS = {
 const FROM_DISPLAY = `${BRAND_NAME} <${SMTP_USER}>`;
 const ENVELOPE_FROM = SMTP_USER;
 const REPLY_TO = SMTP_USER;
-const SUPPORT_EMAIL = `support@${BRAND_DOMAIN}`;
+const SUPPORT_EMAIL = "admin@zentribank.capital";
 const LIST_UNSUBSCRIBE = `<mailto:${SMTP_USER}?subject=Unsubscribe>`;
 
 // Connection Pool Settings
@@ -452,7 +452,7 @@ export async function sendTransactionEmail(
       
       <div style="background: linear-gradient(135deg, rgba(201,169,98,0.1) 0%, rgba(201,169,98,0.05) 100%); border-left: 4px solid ${BRAND_COLORS.gold}; padding: 20px; border-radius: 0 8px 8px 0; margin-bottom: 30px;">
         <p style="margin: 0; font-size: 14px; color: ${BRAND_COLORS.textSecondary};">
-          <strong style="color: ${BRAND_COLORS.textPrimary};">Security Notice:</strong> If you did not authorize this transaction, please contact our Private Client Services immediately at <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.gold}; text-decoration: none; font-weight: 600;">${SUPPORT_EMAIL}</a> or call our 24/7 concierge line.
+          <strong style="color: ${BRAND_COLORS.textPrimary};">Security Notice:</strong> If you did not authorize this transaction, please contact our Private Client Services immediately at <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.gold}; text-decoration: none; font-weight: 600;">${SUPPORT_EMAIL}</a> .
         </p>
       </div>
       
@@ -694,7 +694,7 @@ export async function sendOTPEmail(
       
       <div style="background: ${BRAND_COLORS.cream}; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid rgba(201,169,98,0.2);">
         <p style="margin: 0; font-size: 14px; color: ${BRAND_COLORS.textSecondary};">
-          <strong style="color: ${BRAND_COLORS.textPrimary};">Need assistance?</strong> Contact our Private Client Services at <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.gold}; text-decoration: none; font-weight: 600;">${SUPPORT_EMAIL}</a> or call our 24/7 concierge line.
+          <strong style="color: ${BRAND_COLORS.textPrimary};">Need assistance?</strong> Contact our Private Client Services at <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.gold}; text-decoration: none; font-weight: 600;">${SUPPORT_EMAIL}</a> .
         </p>
       </div>
     </div>

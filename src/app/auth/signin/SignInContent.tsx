@@ -622,7 +622,7 @@ export default function SignInContent() {
             🔐 Security Tip
           </div>
           <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
-            Never share your login credentials. Horizon will never ask for your password via email or phone.
+            Never share your login credentials. ZentriBank will never ask for your password via email or any other channel.
           </div>
         </div>
       )}

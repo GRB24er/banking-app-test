@@ -39,7 +39,7 @@ export default function ScheduledTransferPage() {
       toAccount: "Savings ****5678",
       amount: 500,
       frequency: "monthly",
-      nextDate: "2024-02-01",
+      nextDate: "2026-06-01",
       status: "active",
       executedCount: 12,
       totalTransferred: 6000
@@ -51,7 +51,7 @@ export default function ScheduledTransferPage() {
       toAccount: "Investment ****9012",
       amount: 1000,
       frequency: "biweekly",
-      nextDate: "2024-01-30",
+      nextDate: "2026-05-30",
       status: "active",
       executedCount: 24,
       totalTransferred: 24000
@@ -63,8 +63,8 @@ export default function ScheduledTransferPage() {
       toAccount: "External - Landlord",
       amount: 2500,
       frequency: "monthly",
-      nextDate: "2024-02-01",
-      endDate: "2024-12-01",
+      nextDate: "2026-06-01",
+      endDate: "2027-12-01",
       status: "active",
       executedCount: 6,
       totalTransferred: 15000

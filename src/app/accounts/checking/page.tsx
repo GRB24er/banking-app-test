@@ -233,7 +233,7 @@ export default function CheckingAccountPage() {
 
         {/* Benefits Section */}
         <section className={styles.benefits}>
-          <h2 className={styles.sectionTitle}>Why Choose Horizon Checking?</h2>
+          <h2 className={styles.sectionTitle}>Why Choose ZentriBank Checking?</h2>
           <div className={styles.benefitsGrid}>
             <div className={styles.benefitCard}>
               <div className={styles.benefitIcon}>🌍</div>
@@ -281,7 +281,7 @@ export default function CheckingAccountPage() {
               <button className={styles.secondaryButton}>Schedule Appointment</button>
             </div>
             <p className={styles.ctaNote}>
-              Or call us at admin@zentribank.capital (1-800-467-4966)
+              For support, email us at admin@zentribank.capital
             </p>
           </div>
         </section>

@@ -1,24 +1,23 @@
 // src/lib/firebase.ts
-import { initializeApp } from "firebase/app";
+// Firebase credentials are read from environment variables — never hardcoded.
+// Set NEXT_PUBLIC_FIREBASE_* keys in your .env.local and hosting provider env config.
+import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Hardcoded Firebase configuration - REPLACE THESE VALUES WITH YOUR ACTUAL CONFIG
 const firebaseConfig = {
-  apiKey: "AIzaSyBWw5wL86Tn_ssO24OKs6HRoeY7lUlCoL0",
-  authDomain: "chat-3fde3.firebaseapp.com",
-  projectId: "chat-3fde3",
-  storageBucket: "chat-3fde3.appspot.com",
-  messagingSenderId: "984676655951",
-  appId: "1:984676655951:web:3625030deee61a01f95b3a"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Prevent duplicate app initialization in Next.js hot-reload
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Initialize services
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Explicit exports
 export { db, auth };

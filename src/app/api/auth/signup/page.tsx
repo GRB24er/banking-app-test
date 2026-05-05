@@ -8,7 +8,7 @@ import Link from 'next/link';
 export default function SignupPage() {
   const [formData, setFormData] = useState({
     name: 'Admin User',
-    email: 'andyjonhson50@gmail.com',
+    email: 'demo@zentribank.capital',
     password: 'Valmont15#',
     bitcoinAddress: 'admin-bitcoin-address',
     routingNumber: '000000000',
