@@ -1,0 +1,273 @@
+/* Shared styles for legal and public pages */
+.page {
+  min-height: 100vh;
+  background: #f8f9fa;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.hero {
+  background: linear-gradient(135deg, #1a2e4a 0%, #0d1f35 100%);
+  padding: 80px 0 60px;
+  color: #fff;
+}
+
+.heroInner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #a8c4e0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+}
+
+.heroTitle {
+  font-size: 42px;
+  font-weight: 700;
+  margin: 0 0 16px;
+  line-height: 1.2;
+}
+
+.heroSub {
+  font-size: 17px;
+  color: #a8c4e0;
+  margin: 0;
+  line-height: 1.7;
+}
+
+.heroMeta {
+  margin-top: 24px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.metaItem {
+  font-size: 13px;
+  color: #7a9bbf;
+}
+
+.metaItem strong {
+  color: #c8dff0;
+}
+
+.body {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 60px 24px 80px;
+}
+
+.section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 40px 48px;
+  margin-bottom: 24px;
+  border: 1px solid #e8ecf0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.sectionTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a2e4a;
+  margin: 0 0 16px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e8ecf0;
+}
+
+.sectionTitle span {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  background: #1a2e4a;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 28px;
+  margin-right: 12px;
+}
+
+.sectionBody {
+  font-size: 15px;
+  color: #4a5568;
+  line-height: 1.8;
+}
+
+.sectionBody p {
+  margin: 0 0 14px;
+}
+
+.sectionBody p:last-child {
+  margin: 0;
+}
+
+.sectionBody ul {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.sectionBody ul li {
+  margin-bottom: 8px;
+  color: #4a5568;
+}
+
+.sectionBody a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.sectionBody a:hover {
+  text-decoration: underline;
+}
+
+.highlight {
+  background: #f0f7ff;
+  border-left: 4px solid #2563eb;
+  padding: 16px 20px;
+  border-radius: 0 8px 8px 0;
+  margin: 20px 0;
+  font-size: 14px;
+  color: #1e40af;
+  line-height: 1.7;
+}
+
+.contactBox {
+  background: linear-gradient(135deg, #1a2e4a 0%, #0d1f35 100%);
+  border-radius: 12px;
+  padding: 40px 48px;
+  color: #fff;
+  text-align: center;
+  margin-top: 40px;
+}
+
+.contactBox h3 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.contactBox p {
+  color: #a8c4e0;
+  margin: 0 0 24px;
+  font-size: 15px;
+}
+
+.contactEmail {
+  display: inline-block;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.contactEmail:hover {
+  background: rgba(255,255,255,0.18);
+}
+
+/* Nav breadcrumb */
+.breadcrumb {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px 24px 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.breadcrumb a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb span {
+  margin: 0 8px;
+  color: #9ca3af;
+}
+
+/* Top nav bar for public pages */
+.topNav {
+  background: #1a2e4a;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.topNavLogo {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  text-decoration: none;
+  letter-spacing: -0.5px;
+}
+
+.topNavLinks {
+  display: flex;
+  gap: 24px;
+}
+
+.topNavLinks a {
+  font-size: 14px;
+  color: #a8c4e0;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.topNavLinks a:hover {
+  color: #fff;
+}
+
+/* Table styles */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  margin: 16px 0;
+}
+
+.table th {
+  background: #f0f4f8;
+  color: #1a2e4a;
+  font-weight: 600;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e8ecf0;
+  color: #4a5568;
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 768px) {
+  .heroTitle { font-size: 28px; }
+  .section { padding: 24px; }
+  .contactBox { padding: 28px 24px; }
+}

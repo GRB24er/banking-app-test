@@ -911,7 +911,7 @@ export default function SendMoneyPage() {
                   <span>📞</span>
                   <div>
                     <strong>Call Us</strong>
-                    <p>1-800-555-0123</p>
+                    <p>admin@zentribank.capital</p>
                   </div>
                 </div>
                 <div className={styles.helpItem}>

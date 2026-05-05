@@ -36,7 +36,7 @@
 .brandIcon {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   border-radius: 14px;
   display: flex;
   align-items: center;
@@ -65,7 +65,7 @@
 
 .brandTagline {
   font-size: 13px;
-  color: #D4AF37;
+  color: #2563eb;
   margin: 0;
   font-weight: 500;
 }
@@ -199,7 +199,7 @@
   left: 0;
   width: 32px;
   height: 2px;
-  background: #D4AF37;
+  background: #2563eb;
   border-radius: 1px;
 }
 
@@ -268,7 +268,7 @@
 .trustIcon {
   width: 22px;
   height: 22px;
-  color: #D4AF37;
+  color: #2563eb;
   flex-shrink: 0;
 }
 

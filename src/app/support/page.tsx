@@ -35,7 +35,7 @@ export default function SupportPage() {
       category: "Security",
       questions: [
         { q: "How is my account protected?", a: "We use 256-bit encryption, two-factor authentication, and FDIC insurance up to $250,000." },
-        { q: "What should I do if I notice suspicious activity?", a: "Contact us immediately at 1-800-HORIZON or lock your card in the app." },
+        { q: "What should I do if I notice suspicious activity?", a: "Contact us immediately at admin@zentribank.capital or lock your card in the app." },
         { q: "How do I enable two-factor authentication?", a: "Go to Settings > Security and enable 2FA with your phone number." }
       ]
     }
@@ -54,7 +54,7 @@ export default function SupportPage() {
       title: "Phone Support", 
       desc: "Call us anytime", 
       available: "24/7", 
-      action: () => window.location.href = "tel:1800ZentriBank" 
+      action: () => window.location.href = "mailto:admin@zentribank.capital" 
     },
     { 
       icon: "📧", 
@@ -87,8 +87,8 @@ export default function SupportPage() {
             </div>
             <div className={styles.emergencyContact}>
               <span>Need urgent help?</span>
-              <a href="tel:1800ZentriBank" className={styles.phoneNumber}>
-                📞 1-800-ZentriBank
+              <a href="mailto:admin@zentribank.capital" className={styles.phoneNumber}>
+                📞 admin@zentribank.capital
               </a>
             </div>
           </div>

@@ -43,7 +43,7 @@
   align-items: center;
   gap: 8px;
   padding: 14px 24px;
-  background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #B8941F 100%);
   color: white;
   border: none;
   border-radius: 12px;
@@ -252,12 +252,12 @@
 }
 
 .selectorBtn:hover {
-  border-color: #D4AF37;
+  border-color: #2563eb;
   box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
 }
 
 .selectorBtn.selected {
-  border-color: #D4AF37;
+  border-color: #2563eb;
   background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, rgba(212, 175, 55, 0.1) 100%);
   box-shadow: 0 4px 16px rgba(212, 175, 55, 0.3);
 }
@@ -271,7 +271,7 @@
 }
 
 .selectorBtn.selected .selectorDot {
-  background: #D4AF37;
+  background: #2563eb;
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
 }
 
@@ -346,8 +346,8 @@
 
 .actionBtn:hover {
   background: white;
-  border-color: #D4AF37;
-  color: #D4AF37;
+  border-color: #2563eb;
+  color: #2563eb;
   box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
 }
 

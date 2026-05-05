@@ -3,7 +3,7 @@ import { getToken } from 'next-auth/jwt';
 
 // Hardcoded admin emails
 const ADMIN_EMAILS = [
-  'admin@horizonbank.com',
+  'admin@zentribank.capital',
   'your-email@example.com',
 ];
 

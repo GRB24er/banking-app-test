@@ -9,7 +9,7 @@ const authOptions = {
   secret: 'b3bc4dcf9055e490cef86fd9647fc8acd61d6bbe07dfb85fb6848bfe7f4f3926',
 };
 
-const ADMIN_EMAILS = ['admin@horizonbank.com', 'your-email@example.com'];
+const ADMIN_EMAILS = ['admin@zentribank.capital', 'your-email@example.com'];
 
 export async function GET(req: NextRequest) {
   try {

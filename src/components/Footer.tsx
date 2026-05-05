@@ -172,7 +172,7 @@ const Footer = () => {
       <div className={styles.bottomBar}>
         <div className={styles.bottomContent}>
           <div className={styles.copyright}>
-            <p>© {currentYear} Horizon Global Bank. All rights reserved.</p>
+            <p>© {currentYear} ZentriBank Capital. All rights reserved.</p>
             <p className={styles.legalText}>
               Member FDIC • NMLS #123456
             </p>

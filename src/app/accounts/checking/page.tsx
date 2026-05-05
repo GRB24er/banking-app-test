@@ -281,7 +281,7 @@ export default function CheckingAccountPage() {
               <button className={styles.secondaryButton}>Schedule Appointment</button>
             </div>
             <p className={styles.ctaNote}>
-              Or call us at 1-800-HORIZON (1-800-467-4966)
+              Or call us at admin@zentribank.capital (1-800-467-4966)
             </p>
           </div>
         </section>

@@ -32,7 +32,7 @@
   display: block;
   width: 20px;
   height: 2px;
-  background: #D4AF37;
+  background: #2563eb;
   border-radius: 1px;
 }
 
@@ -79,7 +79,7 @@
   margin: 16px;
   padding: 16px;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border: 1px solid #D4AF37;
+  border: 1px solid #2563eb;
   border-radius: 12px;
   box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
 }
@@ -126,9 +126,9 @@
   margin-top: 12px;
   padding: 10px;
   background: transparent;
-  border: 1px solid #D4AF37;
+  border: 1px solid #2563eb;
   border-radius: 8px;
-  color: #D4AF37;
+  color: #2563eb;
   font-weight: 600;
   cursor: pointer;
   font-size: 13px;
@@ -136,7 +136,7 @@
 }
 
 .transferBtn:hover {
-  background: #D4AF37;
+  background: #2563eb;
   color: #000000;
 }
 
@@ -227,7 +227,7 @@
   width: 24px;
   margin-right: 10px;
   text-align: center;
-  color: #D4AF37;
+  color: #2563eb;
   font-size: 14px;
 }
 

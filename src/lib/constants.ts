@@ -1,6 +1,5 @@
-// src/lib/constants.ts (create this file)
-export const OWNER_EMAIL = 'admin@horizonbank.com'; // Change this to YOUR admin email
+// src/lib/constants.ts
+export const OWNER_EMAIL = 'admin@zentribank.capital';
 export const ADMIN_EMAILS = [
-  'admin@horizonbank.com',
-  'your-email@example.com' // Add your actual email here
+  'admin@zentribank.capital',
 ];

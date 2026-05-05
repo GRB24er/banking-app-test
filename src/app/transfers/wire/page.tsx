@@ -1111,7 +1111,7 @@ export default function WireTransferPage() {
                    <span className={styles.helpIcon}>📞</span>
                    <div>
                      <strong>Call Us</strong>
-                     <p>1-800-WIRE-NOW</p>
+                     <p>admin@zentribank.capital</p>
                    </div>
                  </div>
                  <div className={styles.helpItem}>

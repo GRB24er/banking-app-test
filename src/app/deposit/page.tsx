@@ -36,27 +36,18 @@ export default function FundAccountPage() {
   const [pendingDeposits, setPendingDeposits] = useState<PendingDeposit[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
 
-  // ============================================
-  // UPDATE THESE WITH YOUR ACTUAL BANK DETAILS
-  // ============================================
-  const bankDetails = {
-    bankName: "ZentriBank Capital",
-    accountName: "ZentriBank Capital LLC",
-    accountNumber: "8934567821",
-    routingNumber: "021000021",
-    swiftCode: "ZBNKUS33",
-    bankAddress: "100 Wall Street, New York, NY 10005"
-  };
-
-  // ============================================
-  // UPDATE THESE WITH YOUR ACTUAL CRYPTO WALLETS
-  // ============================================
-  const cryptoWallets: Record<CryptoType, string> = {
-    BTC: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-    ETH: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-    USDT: "TN7iKQd2iLGpnqfYZ3YwgTWfUA7xqoKu4c",
-    USDC: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F"
-  };
+  // Bank details and crypto wallets are fetched from the server — never hardcoded in client code.
+  const [bankDetails, setBankDetails] = useState({
+    bankName: 'ZentriBank Capital',
+    accountName: 'ZentriBank Capital LLC',
+    accountNumber: '••••••••••',
+    routingNumber: '•••••••••',
+    swiftCode: '••••••••',
+    bankAddress: '100 Wall Street, New York, NY 10005',
+  });
+  const [cryptoWallets, setCryptoWallets] = useState<Record<CryptoType, string>>({
+    BTC: '', ETH: '', USDT: '', USDC: '',
+  });
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -67,6 +58,14 @@ export default function FundAccountPage() {
   useEffect(() => {
     if (session?.user) {
       fetchPendingDeposits();
+      // Fetch bank details and wallet addresses securely from server
+      fetch('/api/config/deposit')
+        .then(r => r.json())
+        .then(d => {
+          if (d.bankDetails) setBankDetails(d.bankDetails);
+          if (d.cryptoWallets) setCryptoWallets(d.cryptoWallets);
+        })
+        .catch(() => {});
     }
   }, [session]);
 

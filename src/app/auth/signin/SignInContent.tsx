@@ -585,7 +585,7 @@ export default function SignInContent() {
           <div style={rightContentStyle}>
             <h2 style={rightHeadingStyle}>Secure Banking Made Simple</h2>
             <p style={rightSubtitleStyle}>
-              Join over 100,000 customers who trust Horizon Global Capital with their financial future.
+              Join over 100,000 customers who trust ZentriBank Capital with their financial future.
             </p>
             <ul style={featureListStyle}>
               <li style={featureItemStyle}>

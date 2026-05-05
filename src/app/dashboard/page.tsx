@@ -124,7 +124,13 @@ export default function DashboardPage() {
       <div className={styles.wrapper}>
         <div className={styles.errorScreen}>
           <div className={styles.errorCard}>
-            <div className={styles.errorIcon}>⚠️</div>
+            <div className={styles.errorIcon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="40" height="40">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
             <h2 className={styles.errorTitle}>Connection Error</h2>
             <p className={styles.errorMessage}>{error}</p>
             <button onClick={() => window.location.reload()} className={styles.retryBtn}>
@@ -452,9 +458,17 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className={styles.emptyState}>
-                <div className={styles.emptyIcon}>📊</div>
-                <h3 className={styles.emptyTitle}>No Recent Activity</h3>
-                <p className={styles.emptyText}>Your transactions will appear here</p>
+                <div className={styles.emptyIcon}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="40" height="40">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                  </svg>
+                </div>
+                <h3 className={styles.emptyTitle}>No Transactions Yet</h3>
+                <p className={styles.emptyText}>Fund your account or make a transfer to get started</p>
+                <a href="/deposit" style={{marginTop:"16px",display:"inline-block",background:"#2563eb",color:"#fff",padding:"10px 24px",borderRadius:"8px",fontSize:"14px",fontWeight:600,textDecoration:"none"}}>Fund Account</a>
               </div>
             )}
           </section>

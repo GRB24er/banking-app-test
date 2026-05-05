@@ -6,7 +6,7 @@ import CreditCardApplication from '@/models/CreditCardApplication';
 import User from '@/models/User';
 
 const ADMIN_EMAILS = [
-  'admin@horizonbank.com',
+  'admin@zentribank.capital',
   'your-email@example.com',
 ];
 

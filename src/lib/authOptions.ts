@@ -172,7 +172,7 @@ export const authOptions: NextAuthOptions = {
                         <p style="margin: 4px 0; color: #78350f;"><strong>Location:</strong> ${location}</p>
                         <p style="margin: 4px 0; color: #78350f;"><strong>Time:</strong> ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
                       </div>
-                      <p style="color: #dc2626; font-weight: 600;">If this wasn't you, please secure your account immediately by changing your password and contacting support at +1 (800) 123-4567.</p>
+                      <p style="color: #dc2626; font-weight: 600;">If this wasn't you, please secure your account immediately by changing your password and contacting support at admin@zentribank.capital.</p>
                     </div>
                     <div style="background: #f8fafc; padding: 20px 30px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e5e7eb;">
                       <p>This is an automated security alert from ZentriBank Capital.</p>

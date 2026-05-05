@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text('123 Financial District, Suite 500 | New York, NY 10004', 15, 25);
-    doc.text('Tel: +1 (800) 123-4567 | www.zentribank.capital', 15, 30);
+    doc.text('Tel: admin@zentribank.capital | www.zentribank.capital', 15, 30);
 
     // ---- Statement Title ----
     let y = 52;
@@ -256,7 +256,7 @@ export async function POST(req: NextRequest) {
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.text(
-      'Please review this statement carefully. Report any discrepancies within 60 days to +1 (800) 123-4567.',
+      'Please review this statement carefully. Report any discrepancies within 60 days to admin@zentribank.capital.',
       15,
       fy + 9
     );

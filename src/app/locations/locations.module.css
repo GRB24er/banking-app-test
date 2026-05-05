@@ -1,0 +1,113 @@
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  color: #6b7280;
+}
+
+.searchBar input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: #1a2e4a;
+  background: transparent;
+}
+
+.searchBar button {
+  background: #1a2e4a;
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.searchBar button:hover {
+  background: #0d1f35;
+}
+
+.branchGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.branchCard {
+  background: #fff;
+  border: 1px solid #e8ecf0;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow 0.2s;
+}
+
+.branchCard:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.branchType {
+  display: inline-block;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  align-self: flex-start;
+}
+
+.branchCard h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a2e4a;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.branchDetail {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #4a5568;
+}
+
+.branchDetail svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: #6b7280;
+}
+
+.directionsLink {
+  margin-top: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  padding-top: 8px;
+  border-top: 1px solid #f0f4f8;
+}
+
+.directionsLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .branchGrid { grid-template-columns: 1fr; }
+}

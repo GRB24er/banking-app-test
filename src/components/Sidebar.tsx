@@ -18,9 +18,8 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [balances, setBalances] = useState({ checking: 0, savings: 0, investment: 0 });
 
-  const isAdmin = session?.user?.email === "admin@horizonbank.com" || 
-                  session?.user?.email === "admin@example.com" ||
-                  (session?.user as any)?.role === "admin";
+  // Role-based access: rely solely on the role field in the session token
+  const isAdmin = (session?.user as any)?.role === 'admin';
 
   useEffect(() => {
     if (session?.user) {
