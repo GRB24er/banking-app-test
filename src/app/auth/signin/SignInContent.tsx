@@ -1,9 +1,9 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
+import Link from 'next/link';
+import styles from './signin.module.css';
 
 export default function SignInContent() {
   const { data: session, status } = useSession();
@@ -15,635 +15,295 @@ export default function SignInContent() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string>(
-    registered ? 'Account created! Please sign in below.' : ''
+  const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' | 'warning' } | null>(
+    registered ? { text: 'Account created successfully. Please sign in below.', type: 'success' } : null
   );
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [lockoutTime, setLockoutTime] = useState(0);
-  const [showSecurityTip, setShowSecurityTip] = useState(false);
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passFocused, setPassFocused] = useState(false);
 
-  // Lockout timer
   useEffect(() => {
     if (lockoutTime > 0) {
-      const timer = setTimeout(() => {
-        setLockoutTime(lockoutTime - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setLockoutTime(l => l - 1), 1000);
+      return () => clearTimeout(t);
     } else if (isLocked && lockoutTime === 0) {
       setIsLocked(false);
       setAttempts(0);
     }
   }, [lockoutTime, isLocked]);
 
-  // Redirect on authentication - improved version
   useEffect(() => {
     if (status === 'authenticated' && session) {
-      // Small delay to ensure session is fully loaded
-      const timer = setTimeout(() => {
-        router.push('/dashboard');
-      }, 100);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => router.push('/dashboard'), 100);
+      return () => clearTimeout(t);
     }
   }, [status, session, router]);
 
-  // Show security tip after 3 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSecurityTip(true);
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    if (isLocked) {
-      setErrorMsg(`Account temporarily locked. Try again in ${lockoutTime} seconds.`);
-      return;
-    }
-
-    setErrorMsg('');
-    setLoading(true);
-
-    try {
-      // Simulate network delay for realism
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const res = await signIn("credentials", {
-        redirect: false,
-        email: email.trim(),
-        password: password.trim(),
-      });
-
-      setLoading(false);
-
-      if (res?.error) {
-        const newAttempts = attempts + 1;
-        setAttempts(newAttempts);
-
-        if (newAttempts >= 3) {
-          setIsLocked(true);
-          setLockoutTime(30);
-          setErrorMsg("Too many failed attempts. Account locked for 30 seconds.");
-        } else {
-          setErrorMsg(`Invalid email or password. ${3 - newAttempts} attempt(s) remaining.`);
-        }
-        return;
-      }
-
-      if (res?.ok) {
-        setAttempts(0);
-        setErrorMsg('');
-        
-        // Force a complete page reload to ensure session is properly established
-        window.location.href = '/dashboard';
-        
-        // Alternative approach with router (uncomment if you prefer):
-        // setTimeout(() => {
-        //   router.push('/dashboard');
-        //   router.refresh();
-        // }, 200);
-      }
-    } catch (error) {
-      setLoading(false);
-      console.error('Sign-in error:', error);
-      setErrorMsg('An unexpected error occurred. Please try again.');
-    }
-  }
-
-  const handleForgotPassword = () => {
-    // In real app, this would trigger password reset flow
-    alert('Password reset link would be sent to your email address.');
-  };
-
-  const containerStyle: React.CSSProperties = {
-    display: 'flex',
-    minHeight: '100vh',
-    backgroundColor: '#F8FAFC',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-  };
-
-  const leftColumnStyle: React.CSSProperties = {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    padding: '0 32px',
-    backgroundColor: '#FFFFFF',
-    boxShadow: '0 0 40px rgba(0, 0, 0, 0.1)',
-    position: 'relative',
-    zIndex: 2,
-  };
-
-  const rightColumnStyle: React.CSSProperties = {
-    flex: 1,
-    position: 'relative',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  };
-
-  const formWrapperStyle: React.CSSProperties = {
-    maxWidth: '420px',
-    margin: '0 auto',
-    width: '100%',
-  };
-
-  const logoContainerStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: '40px',
-    justifyContent: 'center',
-  };
-
-  const logoIconStyle: React.CSSProperties = {
-    width: '48px',
-    height: '48px',
-    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-    borderRadius: '12px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '24px',
-    marginRight: '12px',
-  };
-
-  const logoTextStyle: React.CSSProperties = {
-    fontSize: '28px',
-    fontWeight: 700,
-    color: '#0F172A',
-    letterSpacing: '-0.025em',
-  };
-
-  const headingStyle: React.CSSProperties = {
-    fontSize: '36px',
-    fontWeight: 800,
-    color: '#0F172A',
-    margin: '0 0 8px 0',
-    textAlign: 'center',
-    letterSpacing: '-0.025em',
-  };
-
-  const subtitleStyle: React.CSSProperties = {
-    fontSize: '16px',
-    color: '#64748B',
-    marginBottom: '32px',
-    textAlign: 'center',
-    lineHeight: '1.5',
-  };
-
-  const inputGroupStyle: React.CSSProperties = {
-    marginBottom: '20px',
-  };
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: '14px',
-    fontWeight: 600,
-    color: '#374151',
-    marginBottom: '8px',
-  };
-
-  const inputWrapperStyle: React.CSSProperties = {
-    position: 'relative',
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '14px 16px',
-    fontSize: '16px',
-    color: '#111827',
-    border: '2px solid #E5E7EB',
-    borderRadius: '12px',
-    outline: 'none',
-    boxSizing: 'border-box',
-    transition: 'all 0.2s ease',
-    backgroundColor: '#FFFFFF',
-  };
-
-  const inputFocusStyle: React.CSSProperties = {
-    borderColor: '#6366F1',
-    boxShadow: '0 0 0 3px rgba(99, 102, 241, 0.1)',
-  };
-
-  const passwordToggleStyle: React.CSSProperties = {
-    position: 'absolute',
-    right: '16px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '16px',
-    color: '#6B7280',
-    padding: '4px',
-  };
-
-  const checkboxContainerStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '24px',
-  };
-
-  const checkboxWrapperStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  };
-
-  const checkboxStyle: React.CSSProperties = {
-    width: '16px',
-    height: '16px',
-    accentColor: '#6366F1',
-  };
-
-  const checkboxLabelStyle: React.CSSProperties = {
-    fontSize: '14px',
-    color: '#374151',
-    cursor: 'pointer',
-  };
-
-  const forgotPasswordStyle: React.CSSProperties = {
-    fontSize: '14px',
-    color: '#6366F1',
-    textDecoration: 'none',
-    fontWeight: 500,
-    cursor: 'pointer',
-    border: 'none',
-    background: 'none',
-  };
-
-  const buttonStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '16px 0',
-    fontSize: '16px',
-    fontWeight: 600,
-    color: '#FFFFFF',
-    background: isLocked 
-      ? 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)'
-      : 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
-    border: 'none',
-    borderRadius: '12px',
-    cursor: loading || isLocked ? 'not-allowed' : 'pointer',
-    transition: 'all 0.3s ease',
-    position: 'relative',
-    overflow: 'hidden',
-  };
-
-  const buttonHoverStyle: React.CSSProperties = {
-    background: 'linear-gradient(135deg, #5B21B6 0%, #7C3AED 100%)',
-    transform: 'translateY(-1px)',
-    boxShadow: '0 10px 25px rgba(99, 102, 241, 0.3)',
-  };
-
-  const errorTextStyle: React.CSSProperties = {
-    color: attempts >= 2 ? '#DC2626' : '#F59E0B',
-    fontSize: '14px',
-    marginBottom: '16px',
-    textAlign: 'center',
-    padding: '12px',
-    backgroundColor: attempts >= 2 ? '#FEF2F2' : '#FFFBEB',
-    border: `1px solid ${attempts >= 2 ? '#FECACA' : '#FDE68A'}`,
-    borderRadius: '8px',
-    fontWeight: 500,
-  };
-
-  const successTextStyle: React.CSSProperties = {
-    color: '#059669',
-    fontSize: '14px',
-    marginBottom: '16px',
-    textAlign: 'center',
-    padding: '12px',
-    backgroundColor: '#ECFDF5',
-    border: '1px solid #A7F3D0',
-    borderRadius: '8px',
-    fontWeight: 500,
-  };
-
-  const footerTextStyle: React.CSSProperties = {
-    marginTop: '32px',
-    fontSize: '14px',
-    color: '#64748B',
-    textAlign: 'center',
-  };
-
-  const footerLinkStyle: React.CSSProperties = {
-    color: '#6366F1',
-    textDecoration: 'none',
-    fontWeight: 600,
-  };
-
-  const securityTipStyle: React.CSSProperties = {
-    position: 'fixed',
-    bottom: '20px',
-    right: '20px',
-    background: '#1F2937',
-    color: 'white',
-    padding: '16px 20px',
-    borderRadius: '12px',
-    fontSize: '14px',
-    maxWidth: '300px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-    transform: showSecurityTip ? 'translateX(0)' : 'translateX(100%)',
-    transition: 'transform 0.5s ease',
-    zIndex: 1000,
-  };
-
-  const closeTipStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: '8px',
-    right: '12px',
-    background: 'none',
-    border: 'none',
-    color: 'white',
-    cursor: 'pointer',
-    fontSize: '16px',
-  };
-
-  const rightContentStyle: React.CSSProperties = {
-    textAlign: 'center',
-    color: 'white',
-    padding: '40px',
-    maxWidth: '500px',
-  };
-
-  const rightHeadingStyle: React.CSSProperties = {
-    fontSize: '48px',
-    fontWeight: 800,
-    marginBottom: '24px',
-    lineHeight: '1.1',
-  };
-
-  const rightSubtitleStyle: React.CSSProperties = {
-    fontSize: '20px',
-    opacity: 0.9,
-    marginBottom: '32px',
-    lineHeight: '1.5',
-  };
-
-  const featureListStyle: React.CSSProperties = {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-  };
-
-  const featureItemStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: '16px',
-    fontSize: '16px',
-    gap: '12px',
-  };
-
-  const loadingSpinnerStyle: React.CSSProperties = {
-    display: 'inline-block',
-    width: '20px',
-    height: '20px',
-    border: '2px solid rgba(255, 255, 255, 0.3)',
-    borderRadius: '50%',
-    borderTopColor: 'white',
-    animation: 'spin 0.8s linear infinite',
-    marginRight: '8px',
-  };
-
-  // Don't show the form if already authenticated
   if (status === 'authenticated') {
     return (
-      <div style={containerStyle}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '100%',
-          fontSize: '18px',
-          color: '#6B7280'
-        }}>
-          Redirecting to dashboard...
-        </div>
+      <div className={styles.page}>
+        <div className={styles.redirecting}>Redirecting to your dashboard…</div>
       </div>
     );
   }
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLocked) {
+      setMessage({ text: `Account temporarily locked. Try again in ${lockoutTime}s.`, type: 'error' });
+      return;
+    }
+    setMessage(null);
+    setLoading(true);
+    try {
+      const res = await signIn('credentials', {
+        redirect: false,
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
+      });
+      setLoading(false);
+      if (res?.error) {
+        const next = attempts + 1;
+        setAttempts(next);
+        if (next >= 3) {
+          setIsLocked(true);
+          setLockoutTime(30);
+          setMessage({ text: 'Too many failed attempts. Account locked for 30 seconds.', type: 'error' });
+        } else {
+          setMessage({ text: `Invalid email or password. ${3 - next} attempt${3 - next !== 1 ? 's' : ''} remaining.`, type: 'warning' });
+        }
+        return;
+      }
+      if (res?.ok) {
+        setAttempts(0);
+        window.location.href = '/dashboard';
+      }
+    } catch {
+      setLoading(false);
+      setMessage({ text: 'An unexpected error occurred. Please try again.', type: 'error' });
+    }
+  };
+
   return (
-    <>
-      <div style={containerStyle}>
-        <div style={leftColumnStyle}>
-          <div style={formWrapperStyle}>
-            <div style={logoContainerStyle}>
-              <div style={logoIconStyle}>🏦</div>
-              <span style={logoTextStyle}>ZentriBank</span>
+    <div className={styles.page}>
+      {/* ── Left: Form Panel ── */}
+      <div className={styles.formPanel}>
+        <div className={styles.formInner}>
+          {/* Logo */}
+          <Link href="/" className={styles.logo}>
+            <div className={styles.logoMark}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 22V12h6v10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </div>
+            <span className={styles.logoText}>ZentriBank Capital</span>
+          </Link>
 
-            <h1 style={headingStyle}>Welcome Back</h1>
-            <p style={subtitleStyle}>
-              Sign in to your account to access your secure banking dashboard
-            </p>
+          <div className={styles.heading}>
+            <h1 className={styles.title}>Welcome back</h1>
+            <p className={styles.subtitle}>Sign in to access your secure banking dashboard</p>
+          </div>
 
-            {errorMsg && (
-              <div style={registered ? successTextStyle : errorTextStyle}>
-                {registered && '✅ '}
-                {errorMsg}
-              </div>
-            )}
+          {/* Alert banner */}
+          {message && (
+            <div className={`${styles.alert} ${styles[`alert--${message.type}`]}`} role="alert">
+              <span className={styles.alertIcon}>
+                {message.type === 'success' && <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/><polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                {message.type === 'error' && <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/><line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>}
+                {message.type === 'warning' && <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>}
+              </span>
+              {message.text}
+            </div>
+          )}
 
-            <form onSubmit={handleSubmit}>
-              <div style={inputGroupStyle}>
-                <label htmlFor="email" style={labelStyle}>
-                  Email Address
-                </label>
+          <form onSubmit={handleSubmit} className={styles.form} noValidate>
+            {/* Email */}
+            <div className={styles.field}>
+              <label htmlFor="email" className={styles.label}>Email address</label>
+              <div className={`${styles.inputWrap} ${emailFocused ? styles.focused : ''}`}>
+                <span className={styles.inputIcon}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="22,6 12,13 2,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
                 <input
                   id="email"
-                  name="email"
                   type="email"
                   autoComplete="email"
                   required
+                  placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  style={inputStyle}
-                  onFocus={(e) =>
-                    Object.assign(e.currentTarget.style, inputFocusStyle)
-                  }
-                  onBlur={(e) =>
-                    Object.assign(e.currentTarget.style, inputStyle)
-                  }
+                  onChange={e => setEmail(e.target.value)}
+                  onFocus={() => setEmailFocused(true)}
+                  onBlur={() => setEmailFocused(false)}
+                  className={styles.input}
+                  disabled={loading || isLocked}
                 />
               </div>
+            </div>
 
-              <div style={inputGroupStyle}>
-                <label htmlFor="password" style={labelStyle}>
-                  Password
-                </label>
-                <div style={inputWrapperStyle}>
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    style={inputStyle}
-                    onFocus={(e) =>
-                      Object.assign(e.currentTarget.style, inputFocusStyle)
-                    }
-                    onBlur={(e) =>
-                      Object.assign(e.currentTarget.style, inputStyle)
-                    }
-                  />
-                  <button
-                    type="button"
-                    style={passwordToggleStyle}
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? '🙈' : '👁️'}
-                  </button>
-                </div>
-              </div>
-
-              <div style={checkboxContainerStyle}>
-                <div style={checkboxWrapperStyle}>
-                  <input
-                    type="checkbox"
-                    id="remember"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    style={checkboxStyle}
-                  />
-                  <label htmlFor="remember" style={checkboxLabelStyle}>
-                    Remember me for 30 days
-                  </label>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  style={forgotPasswordStyle}
-                >
-                  Forgot password?
+            {/* Password */}
+            <div className={styles.field}>
+              <label htmlFor="password" className={styles.label}>Password</label>
+              <div className={`${styles.inputWrap} ${passFocused ? styles.focused : ''}`}>
+                <span className={styles.inputIcon}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </span>
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onFocus={() => setPassFocused(true)}
+                  onBlur={() => setPassFocused(false)}
+                  className={`${styles.input} ${styles.inputPassword}`}
+                  disabled={loading || isLocked}
+                />
+                <button type="button" className={styles.eyeBtn} onClick={() => setShowPassword(v => !v)} tabIndex={-1} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                  {showPassword
+                    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2"/></svg>
+                  }
                 </button>
               </div>
-
-              <button
-                type="submit"
-                disabled={loading || isLocked}
-                style={{
-                  ...buttonStyle,
-                  ...(loading || isLocked ? { opacity: 0.7 } : {}),
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading && !isLocked) {
-                    Object.assign(e.currentTarget.style, buttonHoverStyle);
-                  }
-                }}
-                onMouseLeave={(e) =>
-                  Object.assign(e.currentTarget.style, buttonStyle)
-                }
-              >
-                {loading && <span style={loadingSpinnerStyle}></span>}
-                {loading ? 'Signing In...' : isLocked ? `Locked (${lockoutTime}s)` : 'Sign In Securely'}
-              </button>
-            </form>
-
-            <p style={footerTextStyle}>
-              Don't have an account?{' '}
-              <a href="/auth/signup" style={footerLinkStyle}>
-                Create account
-              </a>
-            </p>
-
-            {/* Security indicators */}
-            <div style={{
-              marginTop: '24px',
-              padding: '16px',
-              backgroundColor: '#F8FAFC',
-              borderRadius: '8px',
-              border: '1px solid #E5E7EB',
-            }}>
-              <div style={{
-                fontSize: '12px',
-                color: '#6B7280',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '16px',
-                flexWrap: 'wrap',
-              }}>
-                <span>🔒 256-bit SSL</span>
-                <span>🛡️ FDIC Insured</span>
-                <span>✅ SOC 2 Certified</span>
-              </div>
             </div>
-          </div>
-        </div>
 
-        <div style={rightColumnStyle} className="hide-on-narrow">
-          <div style={rightContentStyle}>
-            <h2 style={rightHeadingStyle}>Secure Banking Made Simple</h2>
-            <p style={rightSubtitleStyle}>
-              Join over 100,000 customers who trust ZentriBank Capital with their financial future.
-            </p>
-            <ul style={featureListStyle}>
-              <li style={featureItemStyle}>
-                <span>✅</span>
-                <span>Bank-grade security with 2FA</span>
-              </li>
-              <li style={featureItemStyle}>
-                <span>✅</span>
-                <span>Real-time transaction notifications</span>
-              </li>
-              <li style={featureItemStyle}>
-                <span>✅</span>
-                <span>24/7 customer support</span>
-              </li>
-              <li style={featureItemStyle}>
-                <span>✅</span>
-                <span>FDIC insured up to $250,000</span>
-              </li>
-            </ul>
+            {/* Remember + Forgot */}
+            <div className={styles.row}>
+              <label className={styles.checkLabel}>
+                <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} className={styles.checkbox} />
+                <span className={styles.checkText}>Remember me for 30 days</span>
+              </label>
+              <button type="button" className={styles.forgotBtn} onClick={() => alert('A password reset link will be sent to your registered email address.')}>
+                Forgot password?
+              </button>
+            </div>
+
+            {/* Submit */}
+            <button type="submit" disabled={loading || isLocked || !email || !password} className={`${styles.submitBtn} ${(loading || isLocked) ? styles.submitBtnDisabled : ''}`}>
+              {loading ? (
+                <><span className={styles.spinner} />Signing in…</>
+              ) : isLocked ? (
+                <><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Locked ({lockoutTime}s)</>
+              ) : (
+                <>Sign In Securely<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="12 5 19 12 12 19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></>
+              )}
+            </button>
+          </form>
+
+          <p className={styles.footerText}>
+            Don&apos;t have an account?{' '}
+            <Link href="/auth/signup" className={styles.footerLink}>Open a free account</Link>
+          </p>
+
+          {/* Trust badges */}
+          <div className={styles.badges}>
+            <span className={styles.badge}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              256-bit SSL
+            </span>
+            <span className={styles.badgeDivider} />
+            <span className={styles.badge}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16" stroke="currentColor" strokeWidth="2"/></svg>
+              FDIC Insured
+            </span>
+            <span className={styles.badgeDivider} />
+            <span className={styles.badge}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              SOC 2 Type II
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Security Tip */}
-      {showSecurityTip && (
-        <div style={securityTipStyle}>
-          <button
-            style={closeTipStyle}
-            onClick={() => setShowSecurityTip(false)}
-          >
-            ×
-          </button>
-          <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
-            🔐 Security Tip
+      {/* ── Right: Hero Panel ── */}
+      <div className={styles.heroPanel}>
+        <div className={styles.heroInner}>
+          <div className={styles.heroTag}>Trusted by 100,000+ customers</div>
+          <h2 className={styles.heroTitle}>Enterprise Banking.<br />Built for Everyone.</h2>
+          <p className={styles.heroSubtitle}>
+            Secure, fast, and reliable financial services with real-time access to your accounts, transfers, and investments.
+          </p>
+
+          {/* Stats */}
+          <div className={styles.heroStats}>
+            <div className={styles.heroStat}>
+              <div className={styles.heroStatVal}>$2.4B+</div>
+              <div className={styles.heroStatKey}>Assets Under Management</div>
+            </div>
+            <div className={styles.heroStatDivider} />
+            <div className={styles.heroStat}>
+              <div className={styles.heroStatVal}>4.50%</div>
+              <div className={styles.heroStatKey}>High-Yield APY</div>
+            </div>
+            <div className={styles.heroStatDivider} />
+            <div className={styles.heroStat}>
+              <div className={styles.heroStatVal}>$0</div>
+              <div className={styles.heroStatKey}>Monthly Fees</div>
+            </div>
           </div>
-          <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
-            Never share your login credentials. ZentriBank will never ask for your password via email or any other channel.
+
+          {/* Feature list */}
+          <div className={styles.heroFeatures}>
+            {[
+              { icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z', label: 'Bank-grade 256-bit encryption & 2FA' },
+              { icon: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 100 6 3 3 0 000-6z', label: 'Real-time transaction monitoring' },
+              { icon: 'M5 12h14 M12 5l7 7-7 7', label: 'Instant domestic & international transfers' },
+              { icon: 'M12 22V12 M2 17l10 5 10-5 M2 12l10 5 10-5 M2 7l10 5 10-5', label: 'Multi-currency accounts & crypto wallet' },
+            ].map((f, i) => (
+              <div key={i} className={styles.heroFeature}>
+                <div className={styles.heroFeatureCheck}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <span className={styles.heroFeatureText}>{f.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Account preview card */}
+          <div className={styles.heroCard}>
+            <div className={styles.heroCardTop}>
+              <div className={styles.heroCardAvatar}>JD</div>
+              <div className={styles.heroCardInfo}>
+                <div className={styles.heroCardName}>James Davidson</div>
+                <div className={styles.heroCardAcct}>Premium Checking ···· 4821</div>
+              </div>
+              <div className={styles.heroCardStatus}>
+                <span className={styles.heroDot} />Active
+              </div>
+            </div>
+            <div className={styles.heroCardBalance}>$48,250.00</div>
+            <div className={styles.heroCardBalanceLabel}>Available Balance</div>
+            <div className={styles.heroCardRow}>
+              <div className={styles.heroCardCell}>
+                <div className={styles.heroCardCellVal}>+$3,200</div>
+                <div className={styles.heroCardCellKey}>This Month</div>
+              </div>
+              <div className={styles.heroCardCell}>
+                <div className={styles.heroCardCellVal}>4.50%</div>
+                <div className={styles.heroCardCellKey}>APY Rate</div>
+              </div>
+              <div className={styles.heroCardCell}>
+                <div className={styles.heroCardCellVal}>$0</div>
+                <div className={styles.heroCardCellKey}>Monthly Fee</div>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.heroTrust}>
+            <span>Member FDIC</span>
+            <span className={styles.heroTrustDot}>·</span>
+            <span>Equal Housing Lender</span>
+            <span className={styles.heroTrustDot}>·</span>
+            <span>NMLS #2024001</span>
           </div>
         </div>
-      )}
-
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        
-        @media (max-width: 1023px) {
-          .hide-on-narrow {
-            display: none;
-          }
-        }
-        
-        @media (max-width: 640px) {
-          body {
-            font-size: 14px;
-          }
-        }
-      `}</style>
-    </>
+      </div>
+    </div>
   );
 }
