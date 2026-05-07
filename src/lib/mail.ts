@@ -73,8 +73,8 @@ async function getTransporter(): Promise<Transporter> {
       user: SMTP_USER,
       pass: SMTP_PASS,
     },
-   ..POOL_CONFIG,
-   ..TIMEOUT_CONFIG,
+    ...POOL_CONFIG,
+    ...TIMEOUT_CONFIG,
     logger: false,
     debug: false,
     tls: {
