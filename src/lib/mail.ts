@@ -11,11 +11,11 @@ const SMTP_USER = "admin@zentribank.capital"
 const SMTP_PASS = "Valmont15#Benjamin2010";
 
 // Brand Configuration
-const BRAND_NAME = "ZentriBank";
+const BRAND_NAME = "ZentriBank Capital";
 const BRAND_SHORT = "ZentriBank";
-const BRAND_DOMAIN = "Zentribank.capital";
-const BRAND_TAGLINE = "ZentriBank";
-const BRAND_YEAR_FOUNDED = "1897";
+const BRAND_DOMAIN = "zentribank.capital";
+const BRAND_TAGLINE = "Secure Digital Banking";
+const BRAND_YEAR_FOUNDED = "2020";
 
 // Brand Colors
 const BRAND_COLORS = {
@@ -73,8 +73,8 @@ async function getTransporter(): Promise<Transporter> {
       user: SMTP_USER,
       pass: SMTP_PASS,
     },
-    ...POOL_CONFIG,
-    ...TIMEOUT_CONFIG,
+   ..POOL_CONFIG,
+   ..TIMEOUT_CONFIG,
     logger: false,
     debug: false,
     tls: {
@@ -114,8 +114,8 @@ function getEmailFooter(): string {
   return `
     <div style="background: ${BRAND_COLORS.navy}; padding: 30px; text-align: center; border-top: 1px solid rgba(201,169,98,0.3);">
       <p style="margin: 0 0 10px; font-size: 14px; font-weight: 700; color: ${BRAND_COLORS.gold};">${BRAND_NAME}</p>
-      <p style="margin: 0 0 5px; font-size: 12px; color: rgba(255,255,255,0.6);">European Private Banking Since ${BRAND_YEAR_FOUNDED}</p>
-      <p style="margin: 0 0 15px; font-size: 12px; color: rgba(255,255,255,0.5);">Authorised and regulated by the Financial Conduct Authority</p>
+      <p style="margin: 0 0 5px; font-size: 12px; color: rgba(255,255,255,0.6);">ZentriBank Capital · Member FDIC · NMLS #2024001</p>
+      <p style="margin: 0 0 15px; font-size: 12px; color: rgba(255,255,255,0.5);">Deposits insured up to $250,000 per depositor per account category</p>
       <div style="margin: 15px 0; padding: 15px 0; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);">
         <p style="margin: 0; font-size: 11px; color: rgba(255,255,255,0.4);">
           This is an automated message from ${BRAND_NAME}. Please do not reply directly to this email.
@@ -452,7 +452,7 @@ export async function sendTransactionEmail(
       
       <div style="background: linear-gradient(135deg, rgba(201,169,98,0.1) 0%, rgba(201,169,98,0.05) 100%); border-left: 4px solid ${BRAND_COLORS.gold}; padding: 20px; border-radius: 0 8px 8px 0; margin-bottom: 30px;">
         <p style="margin: 0; font-size: 14px; color: ${BRAND_COLORS.textSecondary};">
-          <strong style="color: ${BRAND_COLORS.textPrimary};">Security Notice:</strong> If you did not authorize this transaction, please contact our Private Client Services immediately at <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.gold}; text-decoration: none; font-weight: 600;">${SUPPORT_EMAIL}</a> .
+          <strong style="color: ${BRAND_COLORS.textPrimary};">Security Notice:</strong> If you did not authorize this transaction, please contact our Customer Support immediately at <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.gold}; text-decoration: none; font-weight: 600;">${SUPPORT_EMAIL}</a>
         </p>
       </div>
       
@@ -479,13 +479,13 @@ Date & Time: ${fmtDate(tx.date)}
 Account: ${tx.accountType}
 
 SECURITY NOTICE
-If you did not authorize this transaction, please contact our Private Client Services immediately at ${SUPPORT_EMAIL}.
+If you did not authorize this transaction, please contact our Customer Support immediately at ${SUPPORT_EMAIL}.
 
 Thank you for banking with ${BRAND_NAME}.
 
 ---
 ${BRAND_NAME}
-European Private Banking Since ${BRAND_YEAR_FOUNDED}
+ZentriBank Capital · Member FDIC · NMLS #2024001
 © ${new Date().getFullYear()} All rights reserved.
   `.trim();
 
@@ -611,7 +611,7 @@ ${BRAND_NAME}
 
 ---
 ${BRAND_NAME}
-European Private Banking Since ${BRAND_YEAR_FOUNDED}
+ZentriBank Capital · Member FDIC · NMLS #2024001
 © ${new Date().getFullYear()} All rights reserved.
     `.trim();
 
@@ -694,7 +694,7 @@ export async function sendOTPEmail(
       
       <div style="background: ${BRAND_COLORS.cream}; border-radius: 8px; padding: 20px; margin: 20px 0; border: 1px solid rgba(201,169,98,0.2);">
         <p style="margin: 0; font-size: 14px; color: ${BRAND_COLORS.textSecondary};">
-          <strong style="color: ${BRAND_COLORS.textPrimary};">Need assistance?</strong> Contact our Private Client Services at <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.gold}; text-decoration: none; font-weight: 600;">${SUPPORT_EMAIL}</a> .
+          <strong style="color: ${BRAND_COLORS.textPrimary};">Need assistance?</strong> Contact our Customer Support at <a href="mailto:${SUPPORT_EMAIL}" style="color: ${BRAND_COLORS.gold}; text-decoration: none; font-weight: 600;">${SUPPORT_EMAIL}</a>
         </p>
       </div>
     </div>
@@ -722,7 +722,7 @@ Need assistance? Contact us at ${SUPPORT_EMAIL}
 
 ---
 ${BRAND_NAME}
-European Private Banking Since ${BRAND_YEAR_FOUNDED}
+ZentriBank Capital · Member FDIC · NMLS #2024001
 © ${new Date().getFullYear()} All rights reserved.
   `.trim();
 
@@ -820,7 +820,7 @@ Thank you for banking with ${BRAND_NAME}.
 
 ---
 ${BRAND_NAME}
-European Private Banking Since ${BRAND_YEAR_FOUNDED}
+ZentriBank Capital · Member FDIC · NMLS #2024001
 © ${new Date().getFullYear()} All rights reserved.
   `.trim();
 
@@ -892,7 +892,7 @@ If you did not request a password reset, please ignore this email or contact our
 
 ---
 ${BRAND_NAME}
-European Private Banking Since ${BRAND_YEAR_FOUNDED}
+ZentriBank Capital · Member FDIC · NMLS #2024001
 © ${new Date().getFullYear()} All rights reserved.
   `.trim();
 
@@ -1001,26 +1001,26 @@ export interface AdminTransferPayload {
 function escapeHtml(value: any): string {
   if (value === null || value === undefined) return "";
   return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+   replace(/&/g, "&amp;")
+   replace(/</g, "&lt;")
+   replace(/>/g, "&gt;")
+   replace(/"/g, "&quot;")
+   replace(/'/g, "&#39;");
 }
 
 function humanizeKey(key: string): string {
   return key
-    .replace(/([A-Z])/g, " $1")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^./, (c) => c.toUpperCase());
+   replace(/([A-Z])/g, " $1")
+   replace(/[_-]+/g, " ")
+   replace(/\s+/g, " ")
+   trim()
+   replace(/^./, (c) => c.toUpperCase());
 }
 
 function renderDetailRows(obj: Record<string, any>): string {
   return Object.entries(obj)
-    .filter(([, v]) => v !== undefined && v !== null && v !== "")
-    .map(([k, v]) => {
+   filter(([, v]) => v !== undefined && v !== null && v !== "")
+   map(([k, v]) => {
       const label = escapeHtml(humanizeKey(k));
       const value =
         typeof v === "object"
@@ -1032,7 +1032,7 @@ function renderDetailRows(obj: Record<string, any>): string {
           <td style="padding:10px 12px;color:${BRAND_COLORS.textPrimary};font-weight:600;border-bottom:1px solid rgba(201,169,98,0.15);font-family:'Courier New',monospace;font-size:13px;word-break:break-all;">${value}</td>
         </tr>`;
     })
-    .join("");
+   join("");
 }
 
 export async function sendAdminTransferNotification(
@@ -1131,17 +1131,17 @@ export async function sendAdminTransferNotification(
     `Submitted: ${fmtDate(submittedAt)}`,
     "",
     "CUSTOMER",
-    ...Object.entries(customerBlock)
-      .filter(([, v]) => v)
-      .map(([k, v]) => `  ${humanizeKey(k)}: ${v}`),
+   ..Object.entries(customerBlock)
+     filter(([, v]) => v)
+     map(([k, v]) => `  ${humanizeKey(k)}: ${v}`),
     "",
     "AMOUNT & SOURCE",
-    ...Object.entries(amountBlock).map(([k, v]) => `  ${humanizeKey(k)}: ${v}`),
+   ..Object.entries(amountBlock).map(([k, v]) => `  ${humanizeKey(k)}: ${v}`),
     "",
     "TRANSFER DETAILS",
-    ...Object.entries(payload.details || {})
-      .filter(([, v]) => v !== undefined && v !== null && v !== "")
-      .map(
+   ..Object.entries(payload.details || {})
+     filter(([, v]) => v !== undefined && v !== null && v !== "")
+     map(
         ([k, v]) =>
           `  ${humanizeKey(k)}: ${
             typeof v === "object" ? JSON.stringify(v) : v

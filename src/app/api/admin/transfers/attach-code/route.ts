@@ -114,7 +114,7 @@ VERIFICATION PORTAL DIRECT LINK:
 ${redeemUrl}
 
 COMPLIANCE NOTICE:
-This verification is required under Financial Conduct Authority (FCA) regulations and international anti-money laundering (AML) directives. Failure to complete verification within 24 hours will result in transfer cancellation.
+This verification is required under applicable banking regulations and international anti-money laundering (AML) directives. Failure to complete verification within 24 hours will result in transfer cancellation.
 
 SECURITY ADVISORY:
 • This code is single-use and time-sensitive
@@ -128,7 +128,7 @@ Contact ZentriBank Security Operations:
 • Email: security@zentribank.capital
 • Internal Reference: ${transaction.reference}
 
-ZENTRIBANK CAPITAL | SWIFT: ZTRIUS33 | FCA AUTHORIZED
+ZENTRIBANK CAPITAL | SWIFT: ZTRIUS33 | Member FDIC
 This is an automated message from ZentriBank Capital's secure transaction system.
       `.trim();
 
@@ -435,7 +435,7 @@ This is an automated message from ZentriBank Capital's secure transaction system
 
             <!-- Compliance Notice -->
             <div class="compliance-notice">
-                <strong>COMPLIANCE NOTICE:</strong> This verification is required under FCA regulations and international AML directives. Failure to complete verification within 24 hours will result in transfer cancellation.
+                <strong>COMPLIANCE NOTICE:</strong> This verification is required under applicable banking regulations and international AML directives. Failure to complete verification within 24 hours will result in transfer cancellation.
             </div>
 
             <!-- Verification Section -->
@@ -526,7 +526,7 @@ This is an automated message from ZentriBank Capital's secure transaction system
         <!-- Footer -->
         <div class="footer">
             <p><strong>ZENTRIBANK CAPITAL</strong></p>
-            <p>SWIFT: ZTRIUS33 | FCA Authorized #123456</p>
+            <p>SWIFT: ZTRIUS33 | Member FDIC · NMLS #2024001</p>
             
             <div class="footer-links">
                 <a href="https://zentribank.capital/security" class="footer-link">Security Center</a>
@@ -537,7 +537,7 @@ This is an automated message from ZentriBank Capital's secure transaction system
             <p>This is an automated message from ZentriBank Capital's secure transaction system.</p>
             <p>© ${new Date().getFullYear()} ZentriBank Capital. All rights reserved.</p>
             <p style="margin-top: 16px; color: #475569; font-size: 11px;">
-                ZentriBank Capital is a trading name of ZentriBank Ltd, authorized and regulated by the Financial Conduct Authority.
+                ZentriBank Capital is a Member FDIC institution. NMLS #2024001.
             </p>
         </div>
     </div>
