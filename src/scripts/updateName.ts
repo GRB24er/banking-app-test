@@ -8,7 +8,7 @@ async function updateName() {
     await connectDB();
     console.log("✅ Connected to MongoDB");
     
-    const email = "hajand@horizonbank.com";
+    const email = "admin@zentribank.capital";
     const newName = "Hajand Morgan";
     
     const user = await User.findOne({ email });

@@ -8,7 +8,7 @@ async function fixBalances() {
     await connectDB();
     console.log("✅ Connected to MongoDB");
     
-    const email = "hajand@horizonbank.com";
+    const email = "admin@zentribank.capital";
     
     // EXACT values that should be set
     const CORRECT_BALANCES = {
