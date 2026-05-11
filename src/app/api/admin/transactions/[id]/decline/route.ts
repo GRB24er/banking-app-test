@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Transaction from '@/models/Transaction';
-import { sendTransactionEmail } from '@/lib/mail';
+import { sendTransactionRejectionEmail } from '@/lib/mail';
 
 export async function POST(
   req: NextRequest,
@@ -61,52 +61,10 @@ export async function POST(
     // Send rejection email
     if (user.email) {
       try {
-        const emailHtml = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="UTF-8">
-            <title>Transaction Rejected</title>
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background-color: #dc3545; color: white; padding: 20px; text-align: center; }
-              .content { padding: 20px; background-color: #f9f9f9; }
-              .footer { margin-top: 20px; padding: 10px; text-align: center; font-size: 12px; color: #666; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>Transaction Rejected</h1>
-              </div>
-              <div class="content">
-                <p>Dear ${user.name},</p>
-                <p>Your transaction has been rejected.</p>
-                <p><strong>Transaction Details:</strong></p>
-                <ul>
-                  <li><strong>Amount:</strong> ${transaction.currency || 'USD'} ${transaction.amount.toLocaleString()}</li>
-                  <li><strong>Type:</strong> ${transaction.type}</li>
-                  <li><strong>Reference:</strong> ${transaction.reference || transaction._id}</li>
-                  <li><strong>Date:</strong> ${new Date(transaction.date).toLocaleString()}</li>
-                  <li><strong>Reason:</strong> ${reason || 'Administrative review'}</li>
-                </ul>
-                ${adminNotes ? `<p><strong>Additional Notes:</strong> ${adminNotes}</p>` : ''}
-                <p>If you have questions about this decision, please contact support.</p>
-              </div>
-              <div class="footer">
-                <p>This is an automated message. Please do not reply.</p>
-              </div>
-            </div>
-          </body>
-          </html>
-        `;
-        
-        await sendTransactionEmail(user.email, {
+        await sendTransactionRejectionEmail(user.email, {
           name: user.name,
-          subject: 'Transaction Rejected',
-          html: emailHtml,
-          transaction: transaction
+          transaction: transaction,
+          declineReason: reason || adminNotes || 'Administrative review',
         });
       } catch (emailError) {
         console.error('Failed to send rejection email:', emailError);
