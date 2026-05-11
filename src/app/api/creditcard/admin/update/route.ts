@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import connectDB from '@/lib/mongodb';
 import CreditCardApplication from '@/models/CreditCardApplication';
 import User from '@/models/User';
+import { sendSimpleEmail } from '@/lib/mail';
 
 const ADMIN_EMAILS = [
   'admin@zentribank.capital',
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
 
     } else if (action === 'reject') {
       application.status = 'declined';
-      
+
       application.workflow.decision = {
         type: 'declined',
         madeBy: session.user.email,
@@ -121,13 +122,52 @@ export async function POST(req: NextRequest) {
 
     } else if (action === 'request_documents') {
       application.status = 'documents_pending';
-      
+
     } else if (action === 'manual_review') {
       application.status = 'manual_review';
     }
 
     application.workflow.lastUpdatedAt = new Date();
     await application.save();
+
+    // Notify the user when their application is declined
+    if (action === 'reject') {
+      try {
+        const applicant = await User.findById(application.userId);
+        const applicantEmail = applicant?.email || application.personalInfo?.email;
+        const applicantName = applicant?.name || application.personalInfo?.firstName || 'Valued Client';
+        const declineReason = reason || 'Application declined';
+        const cardType = application.cardPreferences?.cardType || 'credit card';
+
+        if (applicantEmail) {
+          const text = `Dear ${applicantName},
+
+We have completed the review of your ${cardType} application (Reference: ${application.applicationNumber}).
+
+After careful consideration, we are unable to approve your application at this time.
+
+Reason: ${declineReason}
+
+You may reapply after 90 days. If you have any questions about this decision, please contact our support team.
+
+Thank you for considering ZentriBank.`;
+
+          const html = `
+            <p>Dear ${applicantName},</p>
+            <p>We have completed the review of your <strong>${cardType}</strong> application (Reference: <strong>${application.applicationNumber}</strong>).</p>
+            <p>After careful consideration, we are unable to approve your application at this time.</p>
+            <p><strong>Reason:</strong> ${declineReason}</p>
+            <p>You may reapply after 90 days. If you have any questions about this decision, please contact our support team.</p>
+            <p>Thank you for considering ZentriBank.</p>
+          `;
+
+          await sendSimpleEmail(applicantEmail, 'Credit Card Application Declined', text, html);
+        }
+      } catch (emailError) {
+        console.error('Failed to send credit card decline email:', emailError);
+        // Continue even if email fails
+      }
+    }
 
     return NextResponse.json({
       success: true,

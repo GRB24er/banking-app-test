@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { sendTransactionEmail } from '@/lib/mail';
 
 // POST /api/admin/deposits/[depositId] - Approve or reject deposit
 export async function POST(request: NextRequest, { params }: { params: { depositId: string } }) {
@@ -94,6 +95,32 @@ export async function POST(request: NextRequest, { params }: { params: { deposit
         performedBy: session.user.email,
         createdAt: new Date(),
       });
+
+      // Notify the user that their deposit was rejected
+      try {
+        const user = await db.collection('users').findOne({ _id: new ObjectId(deposit.userId) });
+        if (user?.email) {
+          const linkedTx = await db.collection('transactions').findOne({ depositId: depositId });
+          await sendTransactionEmail(user.email, {
+            name: user.name,
+            transaction: {
+              _id: linkedTx?._id || deposit._id,
+              reference: linkedTx?.reference || `DEP-${depositId}`,
+              description: linkedTx?.description || `Deposit to ${deposit.accountType} account`,
+              type: linkedTx?.type || 'deposit',
+              amount: deposit.amount,
+              currency: linkedTx?.currency || deposit.currency || 'USD',
+              status: 'rejected',
+              date: new Date(),
+              accountType: deposit.accountType,
+              rejectionReason: note || 'Administrative review',
+            },
+          });
+        }
+      } catch (emailError) {
+        console.error('Failed to send deposit rejection email:', emailError);
+        // Continue even if email fails
+      }
     }
 
     return NextResponse.json({
