@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
-import { sendTransactionEmail } from '@/lib/mail';
+import { sendTransactionRejectionEmail } from '@/lib/mail';
 
 // POST /api/admin/deposits/[depositId] - Approve or reject deposit
 export async function POST(request: NextRequest, { params }: { params: { depositId: string } }) {
@@ -101,8 +101,9 @@ export async function POST(request: NextRequest, { params }: { params: { deposit
         const user = await db.collection('users').findOne({ _id: new ObjectId(deposit.userId) });
         if (user?.email) {
           const linkedTx = await db.collection('transactions').findOne({ depositId: depositId });
-          await sendTransactionEmail(user.email, {
+          await sendTransactionRejectionEmail(user.email, {
             name: user.name,
+            declineReason: note || 'The deposit could not be verified following review.',
             transaction: {
               _id: linkedTx?._id || deposit._id,
               reference: linkedTx?.reference || `DEP-${depositId}`,
@@ -113,7 +114,6 @@ export async function POST(request: NextRequest, { params }: { params: { deposit
               status: 'rejected',
               date: new Date(),
               accountType: deposit.accountType,
-              rejectionReason: note || 'Administrative review',
             },
           });
         }

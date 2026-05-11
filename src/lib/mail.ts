@@ -510,6 +510,352 @@ ZentriBank Capital · Member FDIC · NMLS #2024001
   );
 }
 
+// 1b) Transaction Rejection Email - formal decline notice with compliance copy
+export interface TransactionRejectionEmailArgs {
+  name?: string;
+  transaction: TxLike;
+  declineCode?: string;
+  declineReason?: string;
+  caseId?: string;
+  caseUrl?: string;
+  beneficiary?: { name?: string; bank?: string; account?: string };
+  sourceAccount?: string;
+  requireDocuments?: boolean;
+  deadlineDate?: string | Date;
+  amlNotice?: boolean;
+}
+
+export async function sendTransactionRejectionEmail(
+  to: string | string[],
+  args: TransactionRejectionEmailArgs
+) {
+  const recipientList = Array.isArray(to) ? to : [to].filter(Boolean);
+  if (recipientList.length === 0) {
+    console.warn("[mail] No recipients provided for rejection email");
+    return {
+      accepted: [],
+      rejected: [],
+      skipped: true as const,
+      messageId: "SKIPPED-NO-RECIPIENT-" + Date.now(),
+    };
+  }
+
+  const tx = normalizeTx(args.transaction);
+  const customerName = args.name || "Valued Client";
+  const customerEmail = recipientList[0];
+  const txType = (tx.type || "").toLowerCase();
+  const isWire = txType.includes("wire") || tx.origin === "wire_transfer";
+  const isInternational = txType.includes("international") || tx.origin === "international_transfer";
+  const transferLabel = isWire ? "Wire transfer" : isInternational ? "International transfer" : "Transaction";
+
+  const caseId = args.caseId || `RJ-${(tx.reference || tx._id).toString().slice(-10).toUpperCase()}`;
+  const caseUrl = args.caseUrl || `https://${BRAND_DOMAIN}/dashboard/transactions`;
+  const declineReason = args.declineReason || "Following review, this transaction did not satisfy our internal verification controls.";
+  const declineCode = args.declineCode || (isWire || isInternational ? "AML-REVIEW-001" : "ADMIN-DECLINE");
+  const amountFmt = fmtAmount(tx.amount, tx.currency);
+  const dateFmt = fmtDate(tx.date);
+  const deadlineFmt = args.deadlineDate ? fmtDate(args.deadlineDate) : "";
+  const year = new Date().getFullYear();
+  const showAmlNotice = args.amlNotice ?? (isWire || isInternational);
+
+  const subjectAmount = fmtAmountPlain(tx.amount, tx.currency);
+  const subject = `${transferLabel} Rejected - ${subjectAmount} - Case ${caseId}`;
+
+  const beneficiaryRows = args.beneficiary
+    ? `
+              ${args.beneficiary.name ? `
+              <tr>
+                <td style="padding:6px 0; font-size:13px; color:#6b7280;" class="text-secondary">Beneficiary</td>
+                <td style="padding:6px 0; font-size:13px; color:#0a1628;" class="text-primary">${escapeHtml(args.beneficiary.name)}</td>
+              </tr>` : ""}
+              ${args.beneficiary.bank ? `
+              <tr>
+                <td style="padding:6px 0; font-size:13px; color:#6b7280;" class="text-secondary">Beneficiary bank</td>
+                <td style="padding:6px 0; font-size:13px; color:#0a1628;" class="text-primary">${escapeHtml(args.beneficiary.bank)}</td>
+              </tr>` : ""}`
+    : "";
+
+  const nextStepsBlock = args.requireDocuments
+    ? `
+          <tr>
+            <td class="px-mobile" style="padding: 0 40px 8px 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              <h2 class="text-primary" style="margin:0 0 12px 0; font-size:16px; font-weight:600; color:#0a1628;">
+                Required next steps
+              </h2>
+              <p class="text-primary" style="margin:0 0 12px 0; font-size:14px; line-height:22px; color:#2d3748;">
+                To proceed with this or any future transfer to the same beneficiary, please provide the following documentation${deadlineFmt ? ` by <strong>${deadlineFmt}</strong>` : ""}:
+              </p>
+              <ul class="text-primary" style="margin:0 0 20px 0; padding-left:20px; font-size:14px; line-height:24px; color:#2d3748;">
+                <li>Government-issued photo identification (passport or national ID)</li>
+                <li>Proof of address dated within the last three months</li>
+                <li>Source of funds documentation (recent payslip, bank statement, or signed declaration)</li>
+                <li>Purpose of payment and supporting documentation (invoice, contract, or payment justification)</li>
+                <li>Relationship to the beneficiary</li>
+              </ul>
+              <p class="text-primary" style="margin:0 0 24px 0; font-size:14px; line-height:22px; color:#2d3748;">
+                Documents must be submitted through your secure ${BRAND_SHORT} portal, quoting case reference <strong>${caseId}</strong>.
+              </p>
+            </td>
+          </tr>`
+    : "";
+
+  const amlBlock = showAmlNotice
+    ? `${BRAND_SHORT} is required by law to conduct these checks and may be prohibited from disclosing further details regarding the specific reason for this rejection. We are not permitted to discuss this matter over the telephone.`
+    : `For your security, our team is unable to discuss the specific decision criteria over the telephone. Please use the secure case portal for all correspondence regarding this case.`;
+
+  const introParagraph = showAmlNotice
+    ? `This decision was made in accordance with our regulatory obligations under applicable Anti-Money Laundering (AML), Counter-Terrorist Financing (CTF), and sanctions screening frameworks.`
+    : `This decision was made after internal review of the transaction. No funds have been debited from your account.`;
+
+  const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>${transferLabel} Notification - ${BRAND_SHORT}</title>
+  <style>
+    body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; max-width: 100% !important; }
+      .px-mobile { padding-left: 24px !important; padding-right: 24px !important; }
+      .h1-mobile { font-size: 22px !important; line-height: 28px !important; }
+    }
+    @media (prefers-color-scheme: dark) {
+      .bg-page { background-color: #0b0f17 !important; }
+      .bg-card { background-color: #131826 !important; }
+      .bg-detail { background-color: #1a2030 !important; }
+      .bg-alert { background-color: #2a1f12 !important; border-color: #4a3a1f !important; }
+      .text-primary { color: #e6e9ef !important; }
+      .text-secondary { color: #9ba3b4 !important; }
+      .text-muted { color: #6c7385 !important; }
+      .border-soft { border-color: #2a3142 !important; }
+    }
+  </style>
+</head>
+<body class="bg-page" style="margin:0; padding:0; background-color:#f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#f3f4f6;">
+    Your ${transferLabel.toLowerCase()} ${escapeHtml(tx.reference || String(tx._id))} could not be processed. Case reference ${caseId}. Action required.
+  </div>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="bg-page" style="background-color:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding: 32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container bg-card" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:8px; overflow:hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+          <tr>
+            <td class="px-mobile" style="padding: 28px 40px; background-color:#0a1628; border-bottom: 3px solid ${BRAND_COLORS.gold};">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:20px; font-weight:600; color:#ffffff; letter-spacing:0.5px;">
+                    ${BRAND_SHORT.toUpperCase()}
+                  </td>
+                  <td align="right" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:11px; color:${BRAND_COLORS.gold}; letter-spacing:1px; text-transform:uppercase;">
+                    Secure Notification
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="px-mobile" style="padding: 0 40px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="bg-alert" style="margin-top:32px; background-color:#fef3e2; border:1px solid #f0c674; border-radius:6px;">
+                <tr>
+                  <td style="padding: 14px 18px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:13px; font-weight:600; color:#7a4e0f; letter-spacing:0.3px; text-transform:uppercase;">
+                    Transaction Rejected${args.requireDocuments ? " - Action Required" : ""}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="px-mobile" style="padding: 28px 40px 8px 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              <h1 class="text-primary h1-mobile" style="margin:0 0 16px 0; font-size:24px; line-height:32px; font-weight:600; color:#0a1628;">
+                ${transferLabel} could not be completed
+              </h1>
+              <p class="text-primary" style="margin:0 0 16px 0; font-size:15px; line-height:24px; color:#2d3748;">
+                Dear ${escapeHtml(customerName)},
+              </p>
+              <p class="text-primary" style="margin:0 0 16px 0; font-size:15px; line-height:24px; color:#2d3748;">
+                We are writing to inform you that the ${transferLabel.toLowerCase()} referenced below has been rejected following review. The transaction has not been processed, and no funds have been debited from your account.
+              </p>
+              <p class="text-primary" style="margin:0 0 24px 0; font-size:15px; line-height:24px; color:#2d3748;">
+                ${introParagraph}
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td class="px-mobile" style="padding: 0 40px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="bg-detail border-soft" style="background-color:#f8f9fb; border:1px solid #e5e7eb; border-radius:6px;">
+                <tr>
+                  <td style="padding: 20px 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                    <p class="text-muted" style="margin:0 0 16px 0; font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:#6b7280;">
+                      Transaction Details
+                    </p>
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding:6px 0; font-size:13px; color:#6b7280; width:45%;" class="text-secondary">Reference</td>
+                        <td style="padding:6px 0; font-size:13px; color:#0a1628; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight:500;" class="text-primary">${escapeHtml(tx.reference || String(tx._id))}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0; font-size:13px; color:#6b7280;" class="text-secondary">Date initiated</td>
+                        <td style="padding:6px 0; font-size:13px; color:#0a1628;" class="text-primary">${dateFmt}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0; font-size:13px; color:#6b7280;" class="text-secondary">Amount</td>
+                        <td style="padding:6px 0; font-size:13px; color:#0a1628; font-weight:600;" class="text-primary">${amountFmt}</td>
+                      </tr>${beneficiaryRows}
+                      <tr>
+                        <td style="padding:6px 0; font-size:13px; color:#6b7280;" class="text-secondary">From account</td>
+                        <td style="padding:6px 0; font-size:13px; color:#0a1628; font-family: 'SF Mono', Menlo, Consolas, monospace;" class="text-primary">${escapeHtml(args.sourceAccount || `${tx.accountType} account`)}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0; font-size:13px; color:#6b7280;" class="text-secondary">Case reference</td>
+                        <td style="padding:6px 0; font-size:13px; color:#0a1628; font-family: 'SF Mono', Menlo, Consolas, monospace; font-weight:500;" class="text-primary">${caseId}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="px-mobile" style="padding: 28px 40px 8px 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              <h2 class="text-primary" style="margin:0 0 12px 0; font-size:16px; font-weight:600; color:#0a1628;">
+                Reason for rejection
+              </h2>
+              <p class="text-primary" style="margin:0 0 8px 0; font-size:14px; line-height:22px; color:#2d3748;">
+                <strong>Decline code:</strong> ${escapeHtml(declineCode)}
+              </p>
+              <p class="text-primary" style="margin:0 0 24px 0; font-size:14px; line-height:22px; color:#2d3748;">
+                ${escapeHtml(declineReason)}
+              </p>
+            </td>
+          </tr>
+          ${nextStepsBlock}
+          <tr>
+            <td class="px-mobile" align="left" style="padding: 0 40px 32px 40px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="border-radius:6px; background-color:#0a1628;">
+                    <a href="${caseUrl}" target="_blank" style="display:inline-block; padding:14px 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:14px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:6px; letter-spacing:0.3px;">
+                      View transaction in portal
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="px-mobile" style="padding: 0 40px 28px 40px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" class="bg-detail border-soft" style="background-color:#f8f9fb; border-left:3px solid ${BRAND_COLORS.gold}; border-radius:4px;">
+                <tr>
+                  <td style="padding: 16px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                    <p class="text-primary" style="margin:0 0 8px 0; font-size:13px; font-weight:600; color:#0a1628;">
+                      Important
+                    </p>
+                    <p class="text-secondary" style="margin:0; font-size:13px; line-height:20px; color:#4a5568;">
+                      ${amlBlock}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="px-mobile" style="padding: 0 40px 32px 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              <p class="text-secondary" style="margin:0; font-size:13px; line-height:22px; color:#4a5568;">
+                For questions regarding this notification, contact our team at
+                <a href="mailto:${SUPPORT_EMAIL}" style="color:#0a1628; text-decoration:underline;">${SUPPORT_EMAIL}</a>,
+                quoting case reference <strong>${caseId}</strong>. Please do not reply directly to this email.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td class="px-mobile bg-detail border-soft" style="padding: 24px 40px; background-color:#f8f9fb; border-top:1px solid #e5e7eb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+              <p class="text-muted" style="margin:0 0 8px 0; font-size:11px; line-height:16px; color:#6b7280;">
+                This is an automated notification sent to ${escapeHtml(customerEmail)}. The information contained in this email is confidential and intended solely for the addressee.
+              </p>
+              <p class="text-muted" style="margin:0; font-size:11px; line-height:16px; color:#6b7280;">
+                &copy; ${year} ${BRAND_NAME}. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const text = `${transferLabel.toUpperCase()} REJECTED
+
+Dear ${customerName},
+
+We are writing to inform you that the ${transferLabel.toLowerCase()} referenced below has been rejected following review. The transaction has not been processed, and no funds have been debited from your account.
+
+${introParagraph}
+
+TRANSACTION DETAILS
+-------------------
+Reference:       ${tx.reference || String(tx._id)}
+Date initiated:  ${dateFmt}
+Amount:          ${amountFmt}${args.beneficiary?.name ? `
+Beneficiary:     ${args.beneficiary.name}` : ""}${args.beneficiary?.bank ? `
+Beneficiary bank: ${args.beneficiary.bank}` : ""}
+From account:    ${args.sourceAccount || `${tx.accountType} account`}
+Case reference:  ${caseId}
+
+REASON FOR REJECTION
+--------------------
+Decline code: ${declineCode}
+${declineReason}
+${args.requireDocuments ? `
+REQUIRED NEXT STEPS
+-------------------
+Please provide the following documentation${deadlineFmt ? ` by ${deadlineFmt}` : ""}:
+  - Government-issued photo identification
+  - Proof of address (within the last 3 months)
+  - Source of funds documentation
+  - Purpose of payment and supporting documentation
+  - Relationship to the beneficiary
+
+Submit documents through your secure ${BRAND_SHORT} portal, quoting case reference ${caseId}.
+` : ""}
+IMPORTANT
+${amlBlock}
+
+For questions, contact ${SUPPORT_EMAIL} quoting case reference ${caseId}. Please do not reply directly to this email.
+
+---
+${BRAND_NAME}
+© ${year} All rights reserved.`;
+
+  return sendWithRetry(
+    {
+      from: FROM_DISPLAY,
+      replyTo: REPLY_TO,
+      envelope: { from: ENVELOPE_FROM, to: recipientList },
+      to: recipientList,
+      subject,
+      text,
+      html,
+      headers: {
+        "List-Unsubscribe": LIST_UNSUBSCRIBE,
+        "X-Transaction-Reference": tx.reference || String(tx._id),
+        "X-Transaction-Status": "Rejected",
+        "X-Case-Reference": caseId,
+        "X-Priority": "1",
+      },
+    },
+    3
+  );
+}
+
 // 2) Welcome Email
 export async function sendWelcomeEmail(to: string, opts?: any) {
   try {
