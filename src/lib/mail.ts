@@ -1001,26 +1001,26 @@ export interface AdminTransferPayload {
 function escapeHtml(value: any): string {
   if (value === null || value === undefined) return "";
   return String(value)
-   replace(/&/g, "&amp;")
-   replace(/</g, "&lt;")
-   replace(/>/g, "&gt;")
-   replace(/"/g, "&quot;")
-   replace(/'/g, "&#39;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function humanizeKey(key: string): string {
   return key
-   replace(/([A-Z])/g, " $1")
-   replace(/[_-]+/g, " ")
-   replace(/\s+/g, " ")
-   trim()
-   replace(/^./, (c) => c.toUpperCase());
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^./, (c) => c.toUpperCase());
 }
 
 function renderDetailRows(obj: Record<string, any>): string {
   return Object.entries(obj)
-   filter(([, v]) => v !== undefined && v !== null && v !== "")
-   map(([k, v]) => {
+    .filter(([, v]) => v !== undefined && v !== null && v !== "")
+    .map(([k, v]) => {
       const label = escapeHtml(humanizeKey(k));
       const value =
         typeof v === "object"
@@ -1032,7 +1032,7 @@ function renderDetailRows(obj: Record<string, any>): string {
           <td style="padding:10px 12px;color:${BRAND_COLORS.textPrimary};font-weight:600;border-bottom:1px solid rgba(201,169,98,0.15);font-family:'Courier New',monospace;font-size:13px;word-break:break-all;">${value}</td>
         </tr>`;
     })
-   join("");
+    .join("");
 }
 
 export async function sendAdminTransferNotification(
@@ -1131,17 +1131,17 @@ export async function sendAdminTransferNotification(
     `Submitted: ${fmtDate(submittedAt)}`,
     "",
     "CUSTOMER",
-   ..Object.entries(customerBlock)
-     filter(([, v]) => v)
-     map(([k, v]) => `  ${humanizeKey(k)}: ${v}`),
+    ...Object.entries(customerBlock)
+      .filter(([, v]) => v)
+      .map(([k, v]) => `  ${humanizeKey(k)}: ${v}`),
     "",
     "AMOUNT & SOURCE",
-   ..Object.entries(amountBlock).map(([k, v]) => `  ${humanizeKey(k)}: ${v}`),
+    ...Object.entries(amountBlock).map(([k, v]) => `  ${humanizeKey(k)}: ${v}`),
     "",
     "TRANSFER DETAILS",
-   ..Object.entries(payload.details || {})
-     filter(([, v]) => v !== undefined && v !== null && v !== "")
-     map(
+    ...Object.entries(payload.details || {})
+      .filter(([, v]) => v !== undefined && v !== null && v !== "")
+      .map(
         ([k, v]) =>
           `  ${humanizeKey(k)}: ${
             typeof v === "object" ? JSON.stringify(v) : v
