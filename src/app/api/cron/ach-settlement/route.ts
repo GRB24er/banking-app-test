@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Transaction from '@/models/Transaction';
 import User from '@/models/User';
+import { sendTransactionEmail } from '@/lib/mail';
 
 function isCreditType(type: string): boolean {
   return ['deposit', 'transfer-in', 'interest', 'adjustment-credit'].includes(type);
@@ -103,8 +104,21 @@ export async function POST(req: NextRequest) {
             achReturnReason: 'Insufficient funds at settlement',
             achSettledAt: now.toISOString(),
           };
+          tx.rejectionReason = 'Insufficient funds at settlement';
           await tx.save();
           errors.push(`Insufficient funds for tx ${tx._id} - ACH returned`);
+
+          // Notify the user that their transfer was rejected
+          if (user.email) {
+            try {
+              await sendTransactionEmail(user.email, {
+                name: (user as any).name,
+                transaction: tx,
+              });
+            } catch (emailError: any) {
+              errors.push(`Failed to send rejection email for tx ${tx._id}: ${emailError.message}`);
+            }
+          }
           continue;
         }
 
