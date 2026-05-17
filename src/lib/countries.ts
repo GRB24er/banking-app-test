@@ -25,6 +25,97 @@ export interface Country {
   bankInfoHint?: string;
 }
 
+export type Region =
+  | "north_america" | "europe_eea" | "europe_other" | "mena"
+  | "africa_sub" | "asia_pacific" | "latin_america" | "oceania";
+
+export type SanctionsTier = "none" | "edd" | "restricted" | "embargo";
+
+// Region + sanctions metadata kept in a parallel map so we don't touch the
+// existing COUNTRIES array layout.
+const COUNTRY_META: Record<string, { region: Region; sanctionsTier: SanctionsTier }> = {
+  // North America
+  US: { region: "north_america", sanctionsTier: "none" },
+  CA: { region: "north_america", sanctionsTier: "none" },
+  MX: { region: "north_america", sanctionsTier: "none" },
+  // Eurozone / EEA
+  AT: { region: "europe_eea", sanctionsTier: "none" }, BE: { region: "europe_eea", sanctionsTier: "none" },
+  CY: { region: "europe_eea", sanctionsTier: "none" }, EE: { region: "europe_eea", sanctionsTier: "none" },
+  FI: { region: "europe_eea", sanctionsTier: "none" }, FR: { region: "europe_eea", sanctionsTier: "none" },
+  DE: { region: "europe_eea", sanctionsTier: "none" }, GR: { region: "europe_eea", sanctionsTier: "none" },
+  IE: { region: "europe_eea", sanctionsTier: "none" }, IT: { region: "europe_eea", sanctionsTier: "none" },
+  LV: { region: "europe_eea", sanctionsTier: "none" }, LT: { region: "europe_eea", sanctionsTier: "none" },
+  LU: { region: "europe_eea", sanctionsTier: "none" }, MT: { region: "europe_eea", sanctionsTier: "none" },
+  NL: { region: "europe_eea", sanctionsTier: "none" }, PT: { region: "europe_eea", sanctionsTier: "none" },
+  SK: { region: "europe_eea", sanctionsTier: "none" }, SI: { region: "europe_eea", sanctionsTier: "none" },
+  ES: { region: "europe_eea", sanctionsTier: "none" }, GB: { region: "europe_eea", sanctionsTier: "none" },
+  CH: { region: "europe_eea", sanctionsTier: "none" }, NO: { region: "europe_eea", sanctionsTier: "none" },
+  SE: { region: "europe_eea", sanctionsTier: "none" }, DK: { region: "europe_eea", sanctionsTier: "none" },
+  IS: { region: "europe_eea", sanctionsTier: "none" }, PL: { region: "europe_eea", sanctionsTier: "none" },
+  CZ: { region: "europe_eea", sanctionsTier: "none" }, HU: { region: "europe_eea", sanctionsTier: "none" },
+  RO: { region: "europe_eea", sanctionsTier: "none" }, BG: { region: "europe_eea", sanctionsTier: "none" },
+  HR: { region: "europe_eea", sanctionsTier: "none" },
+  // Europe other
+  RS: { region: "europe_other", sanctionsTier: "edd" },
+  UA: { region: "europe_other", sanctionsTier: "edd" },
+  TR: { region: "europe_other", sanctionsTier: "edd" },
+  RU: { region: "europe_other", sanctionsTier: "embargo" },
+  BY: { region: "europe_other", sanctionsTier: "embargo" },
+  // MENA
+  AE: { region: "mena", sanctionsTier: "none" }, SA: { region: "mena", sanctionsTier: "none" },
+  QA: { region: "mena", sanctionsTier: "none" }, KW: { region: "mena", sanctionsTier: "none" },
+  BH: { region: "mena", sanctionsTier: "none" }, OM: { region: "mena", sanctionsTier: "none" },
+  JO: { region: "mena", sanctionsTier: "none" }, LB: { region: "mena", sanctionsTier: "edd" },
+  IL: { region: "mena", sanctionsTier: "none" }, EG: { region: "mena", sanctionsTier: "none" },
+  MA: { region: "mena", sanctionsTier: "none" }, TN: { region: "mena", sanctionsTier: "none" },
+  DZ: { region: "mena", sanctionsTier: "none" },
+  IR: { region: "mena", sanctionsTier: "embargo" }, SY: { region: "mena", sanctionsTier: "embargo" },
+  YE: { region: "mena", sanctionsTier: "edd" }, LY: { region: "mena", sanctionsTier: "edd" },
+  // Sub-Saharan Africa
+  ZA: { region: "africa_sub", sanctionsTier: "none" }, NG: { region: "africa_sub", sanctionsTier: "edd" },
+  KE: { region: "africa_sub", sanctionsTier: "none" }, GH: { region: "africa_sub", sanctionsTier: "none" },
+  ET: { region: "africa_sub", sanctionsTier: "edd" }, UG: { region: "africa_sub", sanctionsTier: "none" },
+  TZ: { region: "africa_sub", sanctionsTier: "none" }, RW: { region: "africa_sub", sanctionsTier: "none" },
+  SN: { region: "africa_sub", sanctionsTier: "none" }, CI: { region: "africa_sub", sanctionsTier: "none" },
+  CM: { region: "africa_sub", sanctionsTier: "none" },
+  SD: { region: "africa_sub", sanctionsTier: "edd" }, SS: { region: "africa_sub", sanctionsTier: "edd" },
+  SO: { region: "africa_sub", sanctionsTier: "edd" }, CD: { region: "africa_sub", sanctionsTier: "edd" },
+  CF: { region: "africa_sub", sanctionsTier: "edd" }, ZW: { region: "africa_sub", sanctionsTier: "edd" },
+  // Asia-Pacific
+  AU: { region: "oceania", sanctionsTier: "none" }, NZ: { region: "oceania", sanctionsTier: "none" },
+  JP: { region: "asia_pacific", sanctionsTier: "none" }, KR: { region: "asia_pacific", sanctionsTier: "none" },
+  CN: { region: "asia_pacific", sanctionsTier: "edd" }, HK: { region: "asia_pacific", sanctionsTier: "none" },
+  TW: { region: "asia_pacific", sanctionsTier: "none" }, SG: { region: "asia_pacific", sanctionsTier: "none" },
+  MY: { region: "asia_pacific", sanctionsTier: "none" }, TH: { region: "asia_pacific", sanctionsTier: "none" },
+  VN: { region: "asia_pacific", sanctionsTier: "none" }, ID: { region: "asia_pacific", sanctionsTier: "none" },
+  PH: { region: "asia_pacific", sanctionsTier: "none" }, IN: { region: "asia_pacific", sanctionsTier: "none" },
+  PK: { region: "asia_pacific", sanctionsTier: "edd" }, BD: { region: "asia_pacific", sanctionsTier: "none" },
+  LK: { region: "asia_pacific", sanctionsTier: "none" }, NP: { region: "asia_pacific", sanctionsTier: "none" },
+  KP: { region: "asia_pacific", sanctionsTier: "embargo" }, MM: { region: "asia_pacific", sanctionsTier: "edd" },
+  AF: { region: "asia_pacific", sanctionsTier: "edd" },
+  // Latin America
+  BR: { region: "latin_america", sanctionsTier: "none" }, AR: { region: "latin_america", sanctionsTier: "none" },
+  CL: { region: "latin_america", sanctionsTier: "none" }, CO: { region: "latin_america", sanctionsTier: "none" },
+  PE: { region: "latin_america", sanctionsTier: "none" }, UY: { region: "latin_america", sanctionsTier: "none" },
+  PY: { region: "latin_america", sanctionsTier: "none" }, EC: { region: "latin_america", sanctionsTier: "none" },
+  BO: { region: "latin_america", sanctionsTier: "none" }, GT: { region: "latin_america", sanctionsTier: "none" },
+  CR: { region: "latin_america", sanctionsTier: "none" }, PA: { region: "latin_america", sanctionsTier: "none" },
+  DO: { region: "latin_america", sanctionsTier: "none" },
+  VE: { region: "latin_america", sanctionsTier: "edd" }, CU: { region: "latin_america", sanctionsTier: "embargo" },
+};
+
+export function regionOf(code: string): Region {
+  return COUNTRY_META[code.toUpperCase()]?.region ?? "europe_other";
+}
+
+export function sanctionsTierOf(code: string): SanctionsTier {
+  return COUNTRY_META[code.toUpperCase()]?.sanctionsTier ?? "none";
+}
+
+export function isEmbargoed(code: string): boolean {
+  return sanctionsTierOf(code) === "embargo";
+}
+
 // ─────────── Reusable bank-field definitions ───────────
 export const FIELD_TRANSIT_CA: BankFieldDef = {
   id: "transitNumber",
