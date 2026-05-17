@@ -30,6 +30,7 @@ export interface ITransaction extends Document {
   type: TxType;
   currency: Currency;
   amount: number;
+  amountMinor?: string;          // canonical integer-cents amount (bigint-safe)
   date: Date;
   description?: string;
   status: TxStatus;
@@ -49,6 +50,19 @@ export interface ITransaction extends Document {
   rejectedAt?: Date;
   rejectionReason?: string;
   adminNotes?: string;
+
+  // Idempotency + double-entry bookkeeping
+  idempotencyKey?: string;
+  ledgerPosted?: boolean;
+  ledgerPostedAt?: Date | null;
+  transactionGroup?: string;     // shared across linked legs (internal transfer)
+
+  // Reversal trail
+  reversedAt?: Date | null;
+  reversedBy?: mongoose.Types.ObjectId | string | null;
+  reversedByReference?: string;
+  reversalReason?: string;
+  reversalOf?: mongoose.Types.ObjectId | null;  // pointer back to the original tx
 }
 
 const TransactionSchema: Schema<ITransaction> = new mongoose.Schema(
@@ -80,10 +94,17 @@ const TransactionSchema: Schema<ITransaction> = new mongoose.Schema(
       required: true, 
       default: 'USD' 
     },
-    amount: { 
-      type: Number, 
+    amount: {
+      type: Number,
       required: true,
       min: 0
+    },
+    amountMinor: {
+      type: String,
+      validate: {
+        validator: (v: string | undefined) => v == null || /^-?\d+$/.test(v),
+        message: "amountMinor must be an integer string",
+      },
     },
     date: { 
       type: Date, 
@@ -146,7 +167,20 @@ const TransactionSchema: Schema<ITransaction> = new mongoose.Schema(
     rejectedBy: { type: String },
     rejectedAt: { type: Date },
     rejectionReason: { type: String },
-    adminNotes: { type: String }
+    adminNotes: { type: String },
+
+    // Idempotency + double-entry bookkeeping
+    idempotencyKey: { type: String, index: true, sparse: true },
+    ledgerPosted: { type: Boolean, default: false, index: true },
+    ledgerPostedAt: { type: Date, default: null },
+    transactionGroup: { type: String, index: true, sparse: true },
+
+    // Reversal trail
+    reversedAt: { type: Date, default: null },
+    reversedBy: { type: Schema.Types.Mixed, default: null },
+    reversedByReference: { type: String },
+    reversalReason: { type: String },
+    reversalOf: { type: Schema.Types.ObjectId, ref: "Transaction", default: null, index: true },
   },
   { timestamps: true }
 );
