@@ -9,6 +9,9 @@ import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
 import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail";
+import { moneyGuard } from "@/lib/moneyGuard";
+import { isEmbargoed, sanctionsTierOf } from "@/lib/countries";
+import { validateIBAN, validateIFSC, validateBSB, validateCLABE, validateSWIFT } from "@/lib/bankingCodes";
 
 interface InternationalTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -161,7 +164,18 @@ export async function POST(request: NextRequest) {
       transferFee += 30;
     }
 
-    const totalFees = transferFee + exchangeFee;
+    // Embargoed check + EDD surcharge for grey-list countries, before we
+    // crystallise the fee totals.
+    if (recipientCountry && isEmbargoed(recipientCountry)) {
+      return NextResponse.json(
+        { success: false, error: `Destination country ${recipientCountry} is embargoed; transfer cannot be processed`, code: "embargoed_country" },
+        { status: 403 }
+      );
+    }
+    const sanctionsCountryTier = recipientCountry ? sanctionsTierOf(recipientCountry) : "none";
+    const eddSurcharge = sanctionsCountryTier === "edd" ? 25 : 0;
+
+    let totalFees = transferFee + exchangeFee + eddSurcharge;
     const totalAmount = transferAmount + totalFees;
     const estimatedDays = transferSpeed === 'express' ? '1-2 business days' : '3-5 business days';
 
@@ -185,6 +199,46 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Country-aware rail-field validation.
+    const extras: Record<string, any> = body.extraBankFields ?? {};
+    const validationErrors: string[] = [];
+    if (extras.iban) {
+      const r = validateIBAN(extras.iban); if (!r.valid) validationErrors.push(`IBAN: ${r.reason}`);
+    }
+    if (extras.ifscCode) {
+      const r = validateIFSC(extras.ifscCode); if (!r.valid) validationErrors.push(r.reason);
+    }
+    if (extras.bsbCode) {
+      const r = validateBSB(extras.bsbCode); if (!r.valid) validationErrors.push(r.reason);
+    }
+    if (extras.clabe) {
+      const r = validateCLABE(extras.clabe); if (!r.valid) validationErrors.push(r.reason);
+    }
+    if (body.swiftCode) {
+      const r = validateSWIFT(body.swiftCode); if (!r.valid) validationErrors.push(r.reason);
+    }
+    if (validationErrors.length) {
+      return NextResponse.json(
+        { success: false, error: "Bank field validation failed", details: validationErrors },
+        { status: 400 }
+      );
+    }
+
+    const guard = await moneyGuard({
+      req: request,
+      userId: String(user._id),
+      email: user.email,
+      scope: "POST /api/transfers/international",
+      body,
+      kycAction: "transfer.wire.international",
+      amount: totalAmount,
+      fromAccount,
+      recipientName,
+      recipientCountry,
+      recipientBankCountry: recipientCountry,
+    });
+    if (!guard.ok) return guard.replay;
 
     console.log('👤 User found:', user._id);
 

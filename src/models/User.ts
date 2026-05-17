@@ -20,6 +20,12 @@ export interface IUser extends Document {
   investmentBalance: number;
   accountNumber?: string;
   routingNumber?: string;
+  accountStatus?: {
+    kind: 'freeze' | 'block' | 'close';
+    scope: 'all' | 'checking' | 'savings' | 'investment';
+    reference: string;
+    since: Date;
+  };
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -37,6 +43,12 @@ const UserSchema = new Schema<IUser>({
   investmentBalance: { type: Number, default: 0 },
   accountNumber: { type: String, required: false, unique: true, sparse: true },
   routingNumber: { type: String, required: false },
+  accountStatus: {
+    kind: { type: String, enum: ['freeze', 'block', 'close'] },
+    scope: { type: String, enum: ['all', 'checking', 'savings', 'investment'] },
+    reference: String,
+    since: Date,
+  },
 }, {
   timestamps: true,
   toJSON: {

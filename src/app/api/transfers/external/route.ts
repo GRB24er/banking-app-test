@@ -8,6 +8,8 @@ import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
 import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail";
+import { moneyGuard } from "@/lib/moneyGuard";
+import { validateABA } from "@/lib/bankingCodes";
 
 interface ExternalTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -78,10 +80,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate routing number (9 digits)
-    if (!/^\d{9}$/.test(recipientRoutingNumber)) {
+    // Validate routing number — ABA checksum, not just length.
+    const aba = validateABA(recipientRoutingNumber);
+    if (!aba.valid) {
       return NextResponse.json(
-        { success: false, error: "Invalid routing number. Must be 9 digits." },
+        { success: false, error: aba.reason },
         { status: 400 }
       );
     }
@@ -103,6 +106,19 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    const guard = await moneyGuard({
+      req: request,
+      userId: String(user._id),
+      email: user.email,
+      scope: "POST /api/transfers/external",
+      body,
+      kycAction: transferSpeed === "express" ? "transfer.external.same_day_ach" : "transfer.external.ach",
+      amount: totalAmount,
+      fromAccount,
+      recipientName,
+    });
+    if (!guard.ok) return guard.replay;
 
     // Get balance field
     const balanceField = `${fromAccount}Balance`;

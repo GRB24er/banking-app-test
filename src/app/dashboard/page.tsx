@@ -7,6 +7,7 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TransactionTable, { Transaction } from "@/components/TransactionTable";
+import AccountStatusBanner from "@/components/AccountStatusBanner";
 import styles from "./dashboard.module.css";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 
@@ -286,6 +287,7 @@ export default function DashboardPage() {
         <Header />
         
         <main className={styles.dashboard}>
+          <AccountStatusBanner />
           {/* Hero Section */}
           <section className={styles.hero}>
             <div className={styles.heroMain}>
