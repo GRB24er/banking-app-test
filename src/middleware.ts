@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
+import { SECURITY_HEADERS } from '@/lib/securityHeaders';
+
+function withSecurityHeaders(res: NextResponse): NextResponse {
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v);
+  return res;
+}
 
 // Hardcoded admin emails
 const ADMIN_EMAILS = [
@@ -36,7 +42,7 @@ export async function middleware(req: NextRequest) {
       
       if (!session || !session.email) {
         console.log('❌ No session or email found, redirecting to signin');
-        return NextResponse.redirect(new URL('/auth/signin?error=no-session', req.url));
+        return withSecurityHeaders(NextResponse.redirect(new URL('/auth/signin?error=no-session', req.url)));
       }
 
       const userEmail = (session.email as string).toLowerCase().trim();
@@ -54,7 +60,7 @@ export async function middleware(req: NextRequest) {
 
       if (!isAdminEmail && !isAdminRole) {
         console.log('❌ Access denied - not admin');
-        return NextResponse.redirect(new URL('/dashboard?error=access-denied', req.url));
+        return withSecurityHeaders(NextResponse.redirect(new URL('/dashboard?error=access-denied', req.url)));
       }
 
       console.log('✅ Admin access granted');
@@ -75,17 +81,17 @@ export async function middleware(req: NextRequest) {
     if (protectedPaths.some(p => path.startsWith(p))) {
       if (!session) {
         console.log('❌ No session for protected path, redirecting to signin');
-        return NextResponse.redirect(new URL('/auth/signin?error=auth-required', req.url));
+        return withSecurityHeaders(NextResponse.redirect(new URL('/auth/signin?error=auth-required', req.url)));
       }
       console.log('✅ Protected route access granted');
     }
 
     console.log('✅ Middleware completed successfully');
-    return NextResponse.next();
+    return withSecurityHeaders(NextResponse.next());
 
   } catch (error) {
     console.error('❌ Middleware error:', error);
-    return NextResponse.redirect(new URL('/auth/signin?error=middleware-error', req.url));
+    return withSecurityHeaders(NextResponse.redirect(new URL('/auth/signin?error=middleware-error', req.url)));
   }
 }
 
