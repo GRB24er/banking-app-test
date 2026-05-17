@@ -9,6 +9,8 @@ import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
 import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail";
+import { moneyGuard } from "@/lib/moneyGuard";
+import { validateABA } from "@/lib/bankingCodes";
 
 interface WireTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -180,6 +182,29 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    // Domestic wires use ABA routing; checksum it before we go further.
+    if (wireType === 'domestic' && recipientRoutingNumber) {
+      const aba = validateABA(recipientRoutingNumber);
+      if (!aba.valid) {
+        return NextResponse.json({ success: false, error: aba.reason }, { status: 400 });
+      }
+    }
+
+    const guard = await moneyGuard({
+      req: request,
+      userId: String(user._id),
+      email: user.email,
+      scope: "POST /api/transfers/wire",
+      body,
+      kycAction: wireType === "international" ? "transfer.wire.international" : "transfer.wire.domestic",
+      amount: totalAmount,
+      fromAccount,
+      recipientName,
+      recipientCountry,
+      recipientBankCountry: recipientCountry,
+    });
+    if (!guard.ok) return guard.replay;
 
     console.log('👤 User found:', user._id);
 

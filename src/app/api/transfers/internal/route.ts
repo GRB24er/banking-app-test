@@ -8,6 +8,7 @@ import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
 import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail";
+import { moneyGuard } from "@/lib/moneyGuard";
 
 interface InternalTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -67,6 +68,19 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const user = await User.findOne({ email: session.user.email });
+    if (user) {
+      const guard = await moneyGuard({
+        req: request,
+        userId: String(user._id),
+        email: user.email,
+        scope: "POST /api/transfers/internal",
+        body,
+        kycAction: "transfer.internal",
+        amount: transferAmount,
+        fromAccount,
+      });
+      if (!guard.ok) return guard.replay;
+    }
     if (!user) {
       return NextResponse.json(
         { success: false, error: "User account not found" },
