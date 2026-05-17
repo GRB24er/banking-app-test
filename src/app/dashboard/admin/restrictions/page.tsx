@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import CustomerPicker, { type CustomerLite } from "@/components/CustomerPicker";
 
 interface Restriction {
   _id: string;
@@ -17,8 +18,6 @@ interface Restriction {
   liftedAt?: string | null;
   liftReason?: string;
 }
-
-interface UserLite { _id: string; name: string; email: string; accountNumber?: string }
 
 const REASONS = [
   "aml_review", "fraud_suspected", "court_order", "sanctions_hit",
@@ -96,9 +95,7 @@ function Pill({ kind }: { kind: string }) {
 
 function IssueModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const [step, setStep] = useState<"lookup" | "form">("lookup");
-  const [q, setQ] = useState("");
-  const [results, setResults] = useState<UserLite[]>([]);
-  const [target, setTarget] = useState<UserLite | null>(null);
+  const [target, setTarget] = useState<CustomerLite | null>(null);
   const [form, setForm] = useState({
     kind: "freeze" as "freeze" | "block" | "close",
     scope: "all" as "all" | "checking" | "savings" | "investment",
@@ -108,17 +105,6 @@ function IssueModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
-  async function lookup() {
-    if (!q.trim()) return;
-    setBusy(true);
-    try {
-      const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`);
-      const d = await r.json();
-      setResults((d.users ?? d ?? []).slice(0, 8));
-    } catch { setResults([]); }
-    finally { setBusy(false); }
-  }
 
   async function submit() {
     if (!target) return;
@@ -144,20 +130,11 @@ function IssueModal({ onClose, onCreated }: { onClose: () => void; onCreated: ()
     <Modal title="Issue restriction" onClose={onClose}>
       {step === "lookup" ? (
         <>
-          <p style={{ color: "#6b7280", fontSize: 14 }}>Find the customer:</p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Email or name…" style={input} onKeyDown={(e) => e.key === "Enter" && lookup()} />
-            <button onClick={lookup} style={secondaryBtn} disabled={busy}>Search</button>
-          </div>
-          <ul style={{ marginTop: 12, listStyle: "none", padding: 0 }}>
-            {results.map((u) => (
-              <li key={u._id}>
-                <button onClick={() => { setTarget(u); setStep("form"); }} style={{ ...rowBtn, width: "100%", textAlign: "left" }}>
-                  <strong>{u.name}</strong> — {u.email}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <p style={{ color: "#6b7280", fontSize: 14, marginTop: 0 }}>Find the customer:</p>
+          <CustomerPicker
+            autoFocus
+            onSelect={(u) => { setTarget(u); setStep("form"); }}
+          />
         </>
       ) : (
         <>

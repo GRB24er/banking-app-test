@@ -3,8 +3,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-
-interface UserLite { _id: string; name: string; email: string }
+import CustomerPicker, { type CustomerLite } from "@/components/CustomerPicker";
 interface Sent { _id: string; recipientEmail: string; subject: string; bodyPreview: string; status: string; errorReason?: string; tag?: string; sentByEmail?: string; createdAt: string; sentAt?: string; messageId?: string }
 
 export default function EmailCenterPage() {
@@ -37,9 +36,7 @@ function TabBtn({ name, active, on }: { name: string; active: boolean; on: () =>
 
 function Compose() {
   const [recipientMode, setRecipientMode] = useState<"customer" | "adhoc">("customer");
-  const [q, setQ] = useState("");
-  const [users, setUsers] = useState<UserLite[]>([]);
-  const [picked, setPicked] = useState<UserLite | null>(null);
+  const [picked, setPicked] = useState<CustomerLite | null>(null);
   const [adhoc, setAdhoc] = useState("");
   const [subject, setSubject] = useState("");
   const [tag, setTag] = useState("");
@@ -80,12 +77,6 @@ function Compose() {
     return () => clearTimeout(id);
   }, [payload]);
 
-  async function searchUsers() {
-    const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`);
-    const d = await r.json();
-    setUsers((d.users ?? d ?? []).slice(0, 8));
-  }
-
   async function send() {
     setBusy(true); setErr(null); setOk(null);
     try {
@@ -111,24 +102,16 @@ function Compose() {
         </div>
 
         {recipientMode === "customer" ? (
-          <>
-            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search customer…" style={input} onKeyDown={(e) => e.key === "Enter" && searchUsers()} />
-              <button onClick={searchUsers} style={secondaryBtn}>Find</button>
+          picked ? (
+            <div style={{ background: "#f3f4f6", padding: 10, borderRadius: 6, marginBottom: 12 }}>
+              <strong>{picked.name}</strong> — {picked.email}
+              <button onClick={() => setPicked(null)} style={btnLink}> change</button>
             </div>
-            {picked ? (
-              <div style={{ background: "#f3f4f6", padding: 10, borderRadius: 6, marginBottom: 12 }}>
-                <strong>{picked.name}</strong> — {picked.email}
-                <button onClick={() => setPicked(null)} style={btnLink}> change</button>
-              </div>
-            ) : (
-              <ul style={{ listStyle: "none", padding: 0 }}>
-                {users.map((u) => (
-                  <li key={u._id}><button onClick={() => setPicked(u)} style={{ ...rowBtn, width: "100%", textAlign: "left" }}><strong>{u.name}</strong> — {u.email}</button></li>
-                ))}
-              </ul>
-            )}
-          </>
+          ) : (
+            <div style={{ marginBottom: 12 }}>
+              <CustomerPicker onSelect={setPicked} />
+            </div>
+          )
         ) : (
           <input value={adhoc} onChange={(e) => setAdhoc(e.target.value)} placeholder="recipient@example.com" style={{ ...input, marginBottom: 12 }} />
         )}

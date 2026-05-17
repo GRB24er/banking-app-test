@@ -3,10 +3,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import CustomerPicker, { type CustomerLite } from "@/components/CustomerPicker";
 
 type Tab = "adjust" | "reverse" | "history";
 
-interface UserLite { _id: string; name: string; email: string; checkingBalance?: number }
 interface Tx { _id: string; reference: string; type: string; amount: number; currency: string; postedAt?: string; description?: string }
 
 const ADJUST_REASONS = [
@@ -50,9 +50,7 @@ function Tab({ name, active, on }: { name: string; active: boolean; on: () => vo
 }
 
 function AdjustPanel() {
-  const [target, setTarget] = useState<UserLite | null>(null);
-  const [q, setQ] = useState("");
-  const [users, setUsers] = useState<UserLite[]>([]);
+  const [target, setTarget] = useState<CustomerLite | null>(null);
   const [form, setForm] = useState({
     direction: "credit" as "credit" | "debit",
     amount: "",
@@ -64,12 +62,6 @@ function AdjustPanel() {
   const [result, setResult] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
-  async function findUser() {
-    const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`);
-    const d = await r.json();
-    setUsers((d.users ?? d ?? []).slice(0, 6));
-  }
 
   async function submit() {
     if (!target) return;
@@ -107,19 +99,7 @@ function AdjustPanel() {
       {!target ? (
         <>
           <p style={muted}>Step 1 — find the customer</p>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by email or name…" style={input} onKeyDown={(e) => e.key === "Enter" && findUser()} />
-            <button onClick={findUser} style={secondaryBtn}>Search</button>
-          </div>
-          <ul style={{ listStyle: "none", padding: 0, marginTop: 12 }}>
-            {users.map((u) => (
-              <li key={u._id}>
-                <button onClick={() => setTarget(u)} style={{ ...rowBtn, width: "100%", textAlign: "left" }}>
-                  <strong>{u.name}</strong> — {u.email}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <CustomerPicker onSelect={setTarget} autoFocus />
         </>
       ) : (
         <>

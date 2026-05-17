@@ -3,95 +3,87 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import mongoose from 'mongoose';
 
-// Define the User schema if not already defined
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-  password: String,
-  checkingBalance: { type: Number, default: 0 },
-  savingsBalance: { type: Number, default: 0 },
-  investmentBalance: { type: Number, default: 0 },
-  verified: { type: Boolean, default: false },
-  role: { type: String, default: 'user' },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
-});
-
-// Define User interface
 interface IUser {
   _id: mongoose.Types.ObjectId;
   name?: string;
   email?: string;
-  password?: string;
+  accountNumber?: string;
   checkingBalance?: number;
   savingsBalance?: number;
   investmentBalance?: number;
   verified?: boolean;
   role?: string;
+  accountStatus?: { kind: string; reference: string };
   createdAt?: Date;
   updatedAt?: Date;
 }
 
+// Escape user input before feeding it into a Mongo regex — otherwise a search
+// for "a+" or "j." crashes the query or matches everything.
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function GET(req: NextRequest) {
   try {
-    console.log('Users API route called');
-    
-    // Connect to database using your existing connectDB function
     await connectDB();
-    console.log('Connected to database');
-    
-    // Get the User model (check if it already exists first)
-    const User = mongoose.models.User || mongoose.model('User', userSchema);
-    
-    // Fetch all users without password field
-    const users = await User.find({})
+
+    // Reuse the existing User model — the previous version re-declared the
+    // schema inline which silently shadowed the real one.
+    const User = mongoose.models.User
+      || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
+
+    const url = new URL(req.url);
+    const q = url.searchParams.get('q')?.trim() ?? '';
+    const limit = Math.min(200, Math.max(1, Number(url.searchParams.get('limit') ?? 50)));
+    const page = Math.max(1, Number(url.searchParams.get('page') ?? 1));
+
+    const filter: any = {};
+    if (q) {
+      const rx = new RegExp(escapeRegex(q), 'i');
+      filter.$or = [
+        { name: rx },
+        { email: rx },
+        { accountNumber: rx },
+      ];
+    }
+
+    const total = await User.countDocuments(filter);
+    const users = await User.find(filter)
       .select('-password')
-      .sort({ createdAt: -1 })
+      .sort({ name: 1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
       .lean<IUser[]>();
-    
-    console.log(`Found ${users.length} users in database`);
-    
-    // Format the users data
-    const formattedUsers = users.map(user => ({
-      _id: user._id.toString(), // Fixed: Properly type the _id field
+
+    const formattedUsers = users.map((user) => ({
+      _id: user._id.toString(),
       name: user.name || 'Unknown User',
       email: user.email || 'no-email@example.com',
+      accountNumber: user.accountNumber ?? null,
       checkingBalance: Number(user.checkingBalance) || 0,
       savingsBalance: Number(user.savingsBalance) || 0,
       investmentBalance: Number(user.investmentBalance) || 0,
       verified: Boolean(user.verified),
       role: user.role || 'user',
+      accountStatus: user.accountStatus ?? null,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      updatedAt: user.updatedAt,
     }));
-    
-    // Return success response with users
+
     return NextResponse.json({
       success: true,
       users: formattedUsers,
-      total: formattedUsers.length,
-      message: `Successfully loaded ${formattedUsers.length} users`
-    }, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      total,
+      page,
+      limit,
+      hasMore: page * limit < total,
     });
-    
   } catch (error: any) {
     console.error('Error in users API route:', error);
-    
-    // Return error response
-    return NextResponse.json({
-      success: false,
-      error: error.message || 'Failed to fetch users',
-      users: [],
-      total: 0
-    }, {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to fetch users', users: [], total: 0 },
+      { status: 500 },
+    );
   }
 }
