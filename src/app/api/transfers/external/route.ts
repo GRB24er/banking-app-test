@@ -10,6 +10,7 @@ import Transaction from "@/models/Transaction";
 import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail";
 import { moneyGuard } from "@/lib/moneyGuard";
 import { validateABA } from "@/lib/bankingCodes";
+import { toMinor } from "@/lib/decimal";
 
 interface ExternalTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -178,6 +179,10 @@ export async function POST(request: NextRequest) {
       type: 'transfer-out',
       currency: 'USD',
       amount: amount,
+      amountMinor: toMinor(amount, 'USD').toString(),
+      transactionGroup: `ext:${transferRef}`,
+      idempotencyKey: request.headers.get('idempotency-key') || transferRef,
+      ledgerPosted: false,
       description: description || `Transfer to ${recipientName}`,
       status: 'initiated',
       accountType: fromAccount,

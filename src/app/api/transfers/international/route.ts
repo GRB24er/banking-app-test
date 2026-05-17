@@ -12,6 +12,7 @@ import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail"
 import { moneyGuard } from "@/lib/moneyGuard";
 import { isEmbargoed, sanctionsTierOf } from "@/lib/countries";
 import { validateIBAN, validateIFSC, validateBSB, validateCLABE, validateSWIFT } from "@/lib/bankingCodes";
+import { toMinor } from "@/lib/decimal";
 
 interface InternationalTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -293,6 +294,10 @@ export async function POST(request: NextRequest) {
       type: 'transfer-out',
       currency: 'USD',
       amount: transferAmount,
+      amountMinor: toMinor(transferAmount, 'USD').toString(),
+      transactionGroup: `intl:${intlRef}`,
+      idempotencyKey: request.headers.get('idempotency-key') || intlRef,
+      ledgerPosted: false,
       description: description?.trim() || `International transfer to ${recipientName} (${recipientCountry})`,
       status: 'pending', // PENDING - awaits admin approval
       accountType: fromAccount,

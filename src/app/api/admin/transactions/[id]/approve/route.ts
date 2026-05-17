@@ -1,9 +1,13 @@
 // src/app/api/admin/transactions/[id]/approve/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/authOptions';
 import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Transaction from '@/models/Transaction';
 import mongoose from 'mongoose';
+import { postPendingTransfer } from '@/lib/transferEngine';
+import { audit, actorContext } from '@/lib/audit';
 
 // Credit types - ADD money
 const CREDIT_TYPES = ['deposit', 'transfer-in', 'interest', 'adjustment-credit'];
@@ -101,7 +105,54 @@ export async function POST(
 
     console.log('[APPROVE] Found user:', user.name, user.email);
 
-    // Get balance field and current balance
+    // ─── new-flow path ───────────────────────────────────────────────
+    // Transactions created by the gated transfer routes carry both
+    // amountMinor (bigint-safe) and transactionGroup. Commit them via
+    // the ledger so balances are derived from the journal — never from
+    // a possibly-stale `transaction.amount` Number field.
+    if (transaction.amountMinor && transaction.transactionGroup && !transaction.ledgerPosted) {
+      const session = await getServerSession(authOptions);
+      const approverId = String((session as any)?.user?.id ?? (req.headers.get('x-actor-id') ?? user._id));
+      const ctx = actorContext(req);
+
+      try {
+        await postPendingTransfer(String(transaction._id), approverId);
+      } catch (err: any) {
+        console.error('[APPROVE] ledger post failed:', err?.message);
+        return NextResponse.json({ error: 'Ledger commit failed', detail: err?.message }, { status: 500 });
+      }
+
+      await audit({
+        actor: { kind: 'admin', id: approverId, email: (session as any)?.user?.email },
+        action: 'transaction.approve',
+        target: { kind: 'transaction', id: String(transaction._id), reference: transaction.reference },
+        outcome: 'success',
+        metadata: { amount: transaction.amount, currency: transaction.currency, accountType: transaction.accountType },
+        ...ctx,
+      });
+
+      const fresh = await User.findById(user._id).select({ checkingBalance: 1, savingsBalance: 1, investmentBalance: 1 }).lean() as any;
+      const field = getBalanceField(transaction.accountType || 'checking');
+      return NextResponse.json({
+        success: true,
+        ledgerPosted: true,
+        message: `Transaction approved and posted to the ledger.`,
+        transaction: {
+          _id: transaction._id,
+          reference: transaction.reference,
+          type: transaction.type,
+          amount: transaction.amount,
+          status: 'approved',
+          accountType: transaction.accountType,
+        },
+        balance: { field, current: Number(fresh?.[field] ?? 0) },
+      });
+    }
+
+    // ─── legacy path ─────────────────────────────────────────────────
+    // Older transactions without amountMinor/transactionGroup get the
+    // original direct-balance-update treatment so nothing in the
+    // existing system breaks.
     const balanceField = getBalanceField(transaction.accountType || 'checking');
     const currentBalance = Number(user[balanceField]) || 0;
     const txAmount = Math.abs(Number(transaction.amount));
