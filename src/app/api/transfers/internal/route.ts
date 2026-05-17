@@ -9,6 +9,8 @@ import User from "@/models/User";
 import Transaction from "@/models/Transaction";
 import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail";
 import { moneyGuard } from "@/lib/moneyGuard";
+import { postInternal, TransferBlocked } from "@/lib/transferEngine";
+import { withIdempotency, IdempotencyError } from "@/lib/idempotency";
 
 interface InternalTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -121,63 +123,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique reference
+    // Generate unique reference for this transfer group.
     const timestamp = Date.now().toString().slice(-6);
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
     const transferRef = `INT-${timestamp}-${random}`;
-    
-    console.log('[Internal Transfer] 📝 Reference:', transferRef);
 
-    // Create TWO PENDING transactions (debit + credit)
-    // Admin will approve both, then balances update
-    
-    const transferOutTransaction = await Transaction.create({
-      userId: user._id,
-      type: 'transfer-out',
-      currency: 'USD',
-      amount: transferAmount, // POSITIVE
-      description: description?.trim() || `Transfer to ${toAccount}`,
-      status: 'pending', // PENDING - awaits admin approval
-      accountType: fromAccount,
-      posted: false,
-      postedAt: null,
-      reference: `${transferRef}-OUT`,
-      channel: 'online',
-      origin: 'internal_transfer',
-      date: new Date(),
-      metadata: {
-        fromAccount,
-        toAccount,
-        isInternalTransfer: true,
-        linkedReference: `${transferRef}-IN`
+    // Same-user, same-bank transfer → commit atomically via the engine.
+    // The ledger posting and Transaction rows happen inside one operation;
+    // no admin approval needed, can never be half-applied.
+    const idemKey = request.headers.get("idempotency-key") || transferRef;
+    let postResult;
+    try {
+      const replay = await withIdempotency<any>(
+        {
+          key: idemKey,
+          scope: "POST /api/transfers/internal",
+          userId: String(user._id),
+          body,
+        },
+        async () => {
+          try {
+            const r = await postInternal(
+              { userId: String(user._id), email: user.email },
+              {
+                kind: "internal",
+                kycAction: "transfer.internal",
+                fromAccount,
+                toAccount,
+                amount: transferAmount,
+                currency: "USD",
+                reference: transferRef,
+                description: description?.trim() || `Transfer to ${toAccount}`,
+                metadata: { fromAccount, toAccount, isInternalTransfer: true },
+              },
+            );
+            return { status: 200, body: r };
+          } catch (e) {
+            if (e instanceof TransferBlocked) {
+              return { status: e.status, body: { success: false, error: e.message, code: e.code, ...e.extra } };
+            }
+            throw e;
+          }
+        },
+      );
+      if (replay.status >= 400) return NextResponse.json(replay.body, { status: replay.status });
+      postResult = replay.body as any;
+    } catch (e) {
+      if (e instanceof IdempotencyError) {
+        return NextResponse.json({ success: false, error: e.message, code: "idempotency_conflict" }, { status: e.status });
       }
-    });
+      throw e;
+    }
 
-    console.log('[Internal Transfer] 💾 Transfer-out created:', transferOutTransaction._id);
+    const transferOutTransaction = await Transaction.findById(postResult.transactionId);
+    const transferInTransaction = await Transaction.findOne({ reference: `${transferRef}-IN` });
+    if (!transferOutTransaction || !transferInTransaction) {
+      return NextResponse.json({ success: false, error: "Ledger post succeeded but transaction lookup failed" }, { status: 500 });
+    }
 
-    const transferInTransaction = await Transaction.create({
-      userId: user._id,
-      type: 'transfer-in',
-      currency: 'USD',
-      amount: transferAmount, // POSITIVE
-      description: description?.trim() || `Transfer from ${fromAccount}`,
-      status: 'pending', // PENDING - awaits admin approval
-      accountType: toAccount,
-      posted: false,
-      postedAt: null,
-      reference: `${transferRef}-IN`,
-      channel: 'online',
-      origin: 'internal_transfer',
-      date: new Date(),
-      metadata: {
-        fromAccount,
-        toAccount,
-        isInternalTransfer: true,
-        linkedReference: `${transferRef}-OUT`
-      }
-    });
-
-    console.log('[Internal Transfer] 💾 Transfer-in created:', transferInTransaction._id);
+    console.log('[Internal Transfer] ✅ Atomic transfer posted:', transferRef);
 
     // ✅ SEND EMAILS for BOTH transactions
     try {

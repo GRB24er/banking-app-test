@@ -11,6 +11,7 @@ import Transaction from "@/models/Transaction";
 import { sendTransactionEmail, sendAdminTransferNotification } from "@/lib/mail";
 import { moneyGuard } from "@/lib/moneyGuard";
 import { validateABA } from "@/lib/bankingCodes";
+import { toMinor } from "@/lib/decimal";
 
 interface WireTransferRequest {
   fromAccount: 'checking' | 'savings' | 'investment';
@@ -259,6 +260,10 @@ export async function POST(request: NextRequest) {
       type: 'transfer-out',
       currency: 'USD',
       amount: transferAmount,
+      amountMinor: toMinor(transferAmount, 'USD').toString(),
+      transactionGroup: `wire:${wireRef}`,
+      idempotencyKey: request.headers.get('idempotency-key') || wireRef,
+      ledgerPosted: false,
       description: description?.trim() || `${wireType === 'international' ? 'International' : 'Domestic'} wire transfer to ${recipientName}`,
       status: 'pending', // PENDING - awaits admin approval
       accountType: fromAccount,
