@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import Chatbox from "@/components/Chatbox";
+import CookieConsent from "@/components/CookieConsent";
 
 export const metadata: Metadata = {
   title: "ZentriBank",
@@ -46,6 +47,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <Chatbox />
+          <CookieConsent />
         </Providers>
       </body>
     </html>
